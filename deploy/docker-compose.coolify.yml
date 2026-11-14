@@ -1,0 +1,92 @@
+# deploy/docker-compose.coolify.yml – wird in Coolify als "Docker Compose (Empty)" eingefügt.
+# Image-Name ggf. an GitHub-Benutzer/Repo anpassen.
+# Die Datenbank ist eine eigenständige PostgreSQL-Ressource in Coolify. DB_HOST = interner
+# Hostname dieser Ressource (in Coolify bei der Datenbank unter „Internal URL“ ablesbar).
+x-app-env: &app-env
+  APP_NAME: Domain-Monitor
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY}
+  APP_URL: ${APP_URL}
+  APP_LOCALE: de
+  APP_TIMEZONE: Europe/Berlin
+  LOG_CHANNEL: stderr
+  DB_CONNECTION: pgsql
+  DB_HOST: ${DB_HOST}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_DATABASE: ${DB_DATABASE}
+  DB_USERNAME: ${DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD}
+  SESSION_DRIVER: database
+  CACHE_STORE: database
+  QUEUE_CONNECTION: database
+  # muss größer sein als das Job-Timeout (300 s), sonst laufen Prüfungen doppelt
+  DB_QUEUE_RETRY_AFTER: "360"
+  # Fallback-Mailer, solange im Backend kein SMTP gespeichert ist
+  MAIL_MAILER: log
+
+services:
+  app:
+    image: ghcr.io/roberteinsle/network-tools:${APP_TAG:-latest}
+    pull_policy: always
+    environment:
+      <<: *app-env
+    volumes:
+      - app-storage:/var/www/html/storage
+    networks:
+      - coolify
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Führt die Domain-Prüfungen aus (Queue-Jobs)
+  worker:
+    image: ghcr.io/roberteinsle/network-tools:${APP_TAG:-latest}
+    pull_policy: always
+    command: ["php", "/var/www/html/artisan", "queue:work", "--tries=1", "--timeout=320", "--sleep=3"]
+    stop_signal: SIGTERM
+    environment:
+      <<: *app-env
+      AUTORUN_ENABLED: "false"
+    volumes:
+      - app-storage:/var/www/html/storage
+    restart: unless-stopped
+    networks:
+      - coolify
+    depends_on:
+      app:
+        condition: service_healthy   # erst nach den Migrationen starten
+    healthcheck:
+      test: ["CMD", "healthcheck-queue"]
+      start_period: 10s
+
+  # Stellt alle 5 Minuten fällige Domains in die Queue, räumt nachts alte Protokolle auf
+  scheduler:
+    image: ghcr.io/roberteinsle/network-tools:${APP_TAG:-latest}
+    pull_policy: always
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    stop_signal: SIGTERM
+    environment:
+      <<: *app-env
+      AUTORUN_ENABLED: "false"
+    volumes:
+      - app-storage:/var/www/html/storage
+    restart: unless-stopped
+    networks:
+      - coolify
+    depends_on:
+      app:
+        condition: service_healthy   # erst nach den Migrationen starten
+    healthcheck:
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 10s
+
+volumes:
+  app-storage:
+
+# Über dieses Netz erreicht die App den Datenbank-Service in Coolify.
+networks:
+  coolify:
+    external: true
