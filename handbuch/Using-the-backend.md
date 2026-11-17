@@ -37,7 +37,7 @@ Customers group domains, which is useful for agencies and IT service providers.
 
 The domain list shows status, number of problems, customer and the time of the last check, with filters for status, customer and active. **Check now** runs a check immediately, for one domain or as a bulk action.
 
-The domain page shows the current result of every check and the history of its check runs. Results are sorted by severity: errors first, then warnings, not checkable, info and OK; within the same severity they keep the check order. The details of every check that is not OK are expanded, and their messages are sorted the same way. OK results stay collapsed. Check runs and the DNS check show results the same way.
+The domain page shows the current result of every check and the history of its check runs. Results are sorted by severity: errors first, then warnings, not checkable, info and OK; within the same severity they keep the check order. The details of every check that is not OK are expanded, and their messages are sorted the same way. OK results stay collapsed. Check runs and the DNS check show results the same way. Every result that is not OK has a **KI-Empfehlung** button, and the header offers **KI-Copilot** and **Export für KI-Chat** (see [AI copilot](AI-copilot.md)).
 
 ## DNS check (Werkzeuge → DNS-Check)
 
@@ -61,6 +61,10 @@ The RBLs used by the blacklist check. Each entry has a name, zone, type (IP or d
 ## Users (Benutzer)
 
 All users have the same rights. Add users with name and email; they log in with a magic link and then register a passkey. See [Login and security](Login-and-security.md).
+
+## AI models (Einstellungen → KI-Modelle)
+
+AI models for the copilot: provider, model ID and API key. See [AI copilot](AI-copilot.md).
 
 ## Settings (Einstellungen)
 

@@ -68,7 +68,15 @@ class CheckRunResource extends Resource
             Section::make('Änderungen gegenüber dem vorherigen Lauf')
                 ->schema([ResultSchema::changes()]),
             Section::make('Ergebnisse')
-                ->schema([ResultSchema::results('results')]),
+                ->headerActions(ResultSchema::copilotActions())
+                ->schema([
+                    ResultSchema::results('results'),
+                    ResultSchema::copilot(
+                        fn (?CheckRun $record) => $record?->domain?->name,
+                        fn (?CheckRun $record) => $record?->results ?? [],
+                        fn (?CheckRun $record) => $record?->finished_at?->format('d.m.Y H:i'),
+                    ),
+                ]),
         ])->columns(1);
     }
 

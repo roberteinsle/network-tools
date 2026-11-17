@@ -11,6 +11,7 @@ network-tools has no passwords.
 ## Data protection
 
 - network-tools runs on your own server. It only contacts the DNS resolvers, RDAP servers, blacklists and hosts that the checks need. There is no telemetry.
+- The optional [AI copilot](AI-copilot.md) sends a domain's results to the selected AI provider only when you ask it. API keys of AI models are stored encrypted as well.
 - The SMTP password and the Spamhaus DQS key are stored encrypted with `APP_KEY` and never shown again in the backend.
 - Spamhaus is only used through DQS with your own key, in line with the Spamhaus terms of use.
 

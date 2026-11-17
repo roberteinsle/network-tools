@@ -36,7 +36,7 @@
         "codeRepository": "https://github.com/roberteinsle/network-tools",
         "programmingLanguage": "PHP",
         "softwareRequirements": "Docker, PostgreSQL",
-        "featureList": ["MX check", "SPF 10-DNS-lookup counter", "DKIM selectors per provider", "DMARC policy and report authorization", "MTA-STS policy check", "TLS-RPT", "BIMI", "DNSSEC validation", "Name server and SOA check (delegation and glue at the registry, lame delegation, serial)", "CAA record check", "HTTP to HTTPS redirect and HSTS check", "DANE/TLSA check for MX hosts", "TLS certificate expiry (HTTPS and SMTP STARTTLS)", "Domain expiry via RDAP", "DNS blacklist (RBL) check with Spamhaus DQS", "On-demand DNS check without adding a domain", "Email alerts on changes", "Passkey login"],
+        "featureList": ["MX check", "SPF 10-DNS-lookup counter", "DKIM selectors per provider", "DMARC policy and report authorization", "MTA-STS policy check", "TLS-RPT", "BIMI", "DNSSEC validation", "Name server and SOA check (delegation and glue at the registry, lame delegation, serial)", "CAA record check", "HTTP to HTTPS redirect and HSTS check", "DANE/TLSA check for MX hosts", "TLS certificate expiry (HTTPS and SMTP STARTTLS)", "Domain expiry via RDAP", "DNS blacklist (RBL) check with Spamhaus DQS", "On-demand DNS check without adding a domain", "AI copilot with Claude, ChatGPT, Gemini, OpenRouter or self-hosted models", "Export of the current state for AI chats", "Email alerts on changes", "Passkey login"],
         "inLanguage": "en",
         "isAccessibleForFree": true,
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
@@ -49,6 +49,7 @@
           { "@type": "Question", "name": "When does network-tools send an email?", "acceptedAnswer": { "@type": "Answer", "text": "When a check gets worse, a problem is fixed, or the configuration changes, for example a new SPF record or another certificate. Timeouts and resolver problems never trigger an alert." } },
           { "@type": "Question", "name": "Does network-tools query Spamhaus?", "acceptedAnswer": { "@type": "Answer", "text": "Only through the Spamhaus Data Query Service (DQS) with your own key. The public Spamhaus zones are never queried." } },
           { "@type": "Question", "name": "How is network-tools installed?", "acceptedAnswer": { "@type": "Answer", "text": "As a Docker image from GitHub Container Registry with a PostgreSQL database, typically deployed with Coolify using the included Docker Compose file." } },
+          { "@type": "Question", "name": "Does network-tools use AI?", "acceptedAnswer": { "@type": "Answer", "text": "Optionally. An AI copilot explains each finding and suggests fixes using a model you configure: Claude, ChatGPT, Gemini, OpenRouter or a self-hosted OpenAI-compatible model. Results are sent only when you ask. An export copies the current state for any AI chat." } },
           { "@type": "Question", "name": "Is network-tools free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The source code is on GitHub and it runs on your own server without license costs or telemetry." } }
         ]
       }
@@ -127,6 +128,10 @@
           <article class="feature">
             <h3>DNS check on demand</h3>
             <p>Check any domain straight from the menu without adding it: delegation at the registry, every name server, DNSSEC, CAA, MX, SPF and more. Nothing is stored, no mail is sent.</p>
+          </article>
+          <article class="feature">
+            <h3>AI copilot</h3>
+            <p>One click on any error, warning or hint asks Claude, ChatGPT, Gemini, an OpenRouter model or your own model for concrete fixes, with ready-to-use DNS records. Or export the current state for any AI chat.</p>
           </article>
           <article class="feature">
             <h3>Configured in the browser</h3>
@@ -218,6 +223,7 @@
           <details><summary>Does it query Spamhaus?</summary><p>Only through the Spamhaus Data Query Service (DQS) with your own key. The public Spamhaus zones are never queried and cannot be added.</p></details>
           <details><summary>Why are some blacklists “not checkable”?</summary><p>Many RBLs refuse queries from public resolvers such as 8.8.8.8. Run your own resolver (for example Unbound) and enter it in the settings.</p></details>
           <details><summary>How often are domains checked?</summary><p>Per domain: hourly, every 3, 6 or 12 hours, or daily. A scheduler queues due domains every five minutes, and you can start a check at any time.</p></details>
+          <details><summary>Does it use AI?</summary><p>Only if you want it to. You can add models from Anthropic (Claude), OpenAI (ChatGPT), Google (Gemini), OpenRouter or a self-hosted OpenAI-compatible server; the copilot then explains each finding and suggests fixes. Results are sent to the provider only when you click the copilot. Without a model, the export copies the current state for any AI chat.</p></details>
           <details><summary>Is it free?</summary><p>Yes. The source code is on GitHub, and it runs on your own server without license costs or telemetry. The backend interface is currently in German.</p></details>
         </div>
       </div>

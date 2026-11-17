@@ -22,7 +22,7 @@ SITE = 'https://network-tools.einsle.app'
 # Order of the sidebar; pages not listed here are appended alphabetically.
 ORDER = {
     'Getting started': ['Installation', 'Configuration', 'Using-the-backend'],
-    'Reference': ['Checks', 'Notifications', 'Operations', 'Login-and-security'],
+    'Reference': ['Checks', 'Notifications', 'AI-copilot', 'Operations', 'Login-and-security'],
     'More': ['About'],
 }
 

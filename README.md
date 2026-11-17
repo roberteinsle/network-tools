@@ -33,6 +33,7 @@ A scheduler queues due domains every five minutes, and a worker runs all enabled
 
 - **Alerts on real changes only:** a mail goes out when a check gets worse, is fixed or its records change. Timeouts and resolver hiccups never trigger an alert.
 - **Built for many domains:** group domains by customer, inherit DKIM providers, and send alerts to global, customer and domain recipients.
+- **AI copilot:** recommendations for every error, warning and hint from Claude, ChatGPT, Gemini, OpenRouter or a self-hosted model – or export the current state for any AI chat.
 - **DNS check on demand:** check any domain from the menu without adding it – same rules, nothing stored, no mail.
 - **Everything in the backend:** SMTP, recipients, thresholds, intervals, resolvers and the Spamhaus DQS key are configured in the UI. Secrets are stored encrypted.
 
@@ -62,7 +63,7 @@ Everything else – every field, setting and alert rule – is in the **[wiki](h
 
 ## Privacy & security
 
-network-tools runs on your server and only contacts the resolvers, registries, blacklists and hosts the checks need. There is no telemetry. The SMTP password and the DQS key are encrypted with `APP_KEY`. Login works with passkeys or a one-time magic link; there are no passwords.
+network-tools runs on your server and only contacts the resolvers, registries, blacklists and hosts the checks need. There is no telemetry, and the optional AI copilot only sends a domain's results to the AI provider you chose when you ask it. The SMTP password and the DQS key are encrypted with `APP_KEY`. Login works with passkeys or a one-time magic link; there are no passwords.
 
 Please report vulnerabilities privately via [GitHub security advisories](https://github.com/roberteinsle/network-tools/security/advisories/new).
 

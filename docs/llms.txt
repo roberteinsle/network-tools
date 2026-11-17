@@ -27,6 +27,9 @@
 
 - DNS check: check any domain on demand from the backend menu without adding it; same checks as the monitoring (DNS checks preselected), nothing stored, no mail sent
 
+- AI copilot (optional): AI models configured in the backend (Anthropic Claude via the official SDK, OpenAI, Google Gemini, OpenRouter, OpenAI-compatible such as Ollama or Mistral; API keys encrypted); recommendations per finding or for all findings, answers cached 7 days; results are sent to the provider only on request
+- Export for AI chat: instructions plus the full current state as text or Markdown file for pasting into any AI chat
+
 ## Alerts
 
 - Mail on: worse status, fixed problem (optional), other status change, configuration change with the same status (different records)

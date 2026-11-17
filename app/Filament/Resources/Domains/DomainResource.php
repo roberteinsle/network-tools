@@ -185,7 +185,15 @@ class DomainResource extends Resource
                 ->description(fn (Domain $record) => $record->latestRun
                     ? 'Prüfung vom '.$record->latestRun->finished_at?->format('d.m.Y H:i').' ('.$record->latestRun->duration_ms.' ms)'
                     : null)
-                ->schema([ResultSchema::results('latestRun.results')]),
+                ->headerActions(ResultSchema::copilotActions())
+                ->schema([
+                    ResultSchema::results('latestRun.results'),
+                    ResultSchema::copilot(
+                        fn (?Domain $record) => $record?->latestRun ? $record->name : null,
+                        fn (?Domain $record) => $record?->latestRun?->results ?? [],
+                        fn (?Domain $record) => $record?->latestRun?->finished_at?->format('d.m.Y H:i'),
+                    ),
+                ]),
         ])->columns(1);
     }
 

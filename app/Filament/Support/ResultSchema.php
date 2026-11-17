@@ -5,10 +5,15 @@ namespace App\Filament\Support;
 use App\Enums\CheckStatus;
 use App\Enums\CheckType;
 use App\Services\ChangeDetector;
+use App\Services\Copilot\CopilotPrompt;
+use Closure;
+use Filament\Actions\Action;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
 
 /** Wiederverwendbare Infolist-Bausteine für Prüfergebnisse und Änderungen. */
@@ -43,6 +48,11 @@ class ResultSchema
                     ->collapsed(fn ($record) => $record?->status === CheckStatus::Ok)
                     ->compact()
                     ->schema([
+                        ViewEntry::make('copilot_button')
+                            ->hiddenLabel()
+                            ->view('filament.copilot-button')
+                            ->state(fn ($record) => $record?->check?->value)
+                            ->visible(fn ($record) => $record !== null && $record->status !== CheckStatus::Ok),
                         RepeatableEntry::make('details.messages')
                             ->hiddenLabel()
                             ->state(fn ($record) => self::bySeverity($record?->details['messages'] ?? [], fn ($m) => CheckStatus::tryFrom($m['status']) ?? CheckStatus::Unknown)->all())
@@ -73,6 +83,44 @@ class ResultSchema
                             ]),
                     ]),
             ]);
+    }
+
+    /**
+     * Unsichtbarer KI-Copilot (Livewire) für eine Ergebnisliste; geöffnet über die Buttons
+     * aus copilotActions() und an den einzelnen Ergebnissen.
+     *
+     * @param  Closure(mixed): ?string  $domain
+     * @param  Closure(mixed): iterable  $results
+     * @param  Closure(mixed): ?string|null  $checkedAt
+     */
+    public static function copilot(Closure $domain, Closure $results, ?Closure $checkedAt = null): ViewEntry
+    {
+        return ViewEntry::make('copilot')
+            ->hiddenLabel()
+            ->view('filament.copilot')
+            ->state(fn ($record) => [
+                'domain' => $domain($record),
+                'results' => CopilotPrompt::payload($results($record) ?? []),
+                'checkedAt' => $checkedAt ? $checkedAt($record) : null,
+            ])
+            ->visible(fn ($record) => filled($domain($record)));
+    }
+
+    /** Header-Buttons „KI-Copilot“ (alle Probleme) und „Export für KI-Chat“. @return list<Action> */
+    public static function copilotActions(): array
+    {
+        return [
+            Action::make('copilot')
+                ->label('KI-Copilot')
+                ->icon(Heroicon::OutlinedSparkles)
+                ->color('gray')
+                ->alpineClickHandler("\$dispatch('copilot-open', { check: null })"),
+            Action::make('copilotExport')
+                ->label('Export für KI-Chat')
+                ->icon(Heroicon::OutlinedClipboardDocumentList)
+                ->color('gray')
+                ->alpineClickHandler("\$dispatch('copilot-export')"),
+        ];
     }
 
     /** Stabile Sortierung nach Schweregrad, schwerster zuerst. */

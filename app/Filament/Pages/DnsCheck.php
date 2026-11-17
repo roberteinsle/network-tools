@@ -161,6 +161,7 @@ class DnsCheck extends Page
                 Section::make("Ergebnis für {$this->checkedName}")
                     ->description($run->status->getLabel().' · '.count($this->results).' Prüfung(en), '.$problems.' mit Problemen · '.$this->durationMs.' ms')
                     ->headerActions([
+                        ...ResultSchema::copilotActions(),
                         Action::make('monitor')
                             ->label('Überwachen')
                             ->icon(Heroicon::OutlinedPlus)
@@ -168,7 +169,10 @@ class DnsCheck extends Page
                             ->visible(fn () => ! Domain::query()->where('name', $this->checkedName)->exists())
                             ->url(fn () => DomainResource::getUrl('create', ['name' => $this->checkedName])),
                     ])
-                    ->schema([ResultSchema::results('results')]),
+                    ->schema([
+                        ResultSchema::results('results'),
+                        ResultSchema::copilot(fn () => $this->checkedName, fn () => $this->results),
+                    ]),
             ]);
     }
 }

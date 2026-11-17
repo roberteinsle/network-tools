@@ -4,7 +4,7 @@
 
 - PHP 8.5, Laravel 13, Filament 5
 - PostgreSQL in production, SQLite for local development and tests
-- `laravel/passkeys` for passkey login, `pear/net_dns2` for DNS queries (including DNSSEC and the AD flag)
+- `laravel/passkeys` for passkey login, `anthropic-ai/sdk` for Claude in the AI copilot, `pear/net_dns2` for DNS queries (including DNSSEC and the AD flag)
 - Docker image built with GitHub Actions and published to GitHub Container Registry, deployed with Coolify
 - Tests with PHPUnit
 
@@ -12,6 +12,7 @@
 
 - Each check is a class in `app/Checks` that implements the common `Check` interface and returns a `CheckOutcome` (status, messages, details, fingerprint).
 - All checks are registered in `App\Services\CheckRegistry`. A new check is added there and in the `CheckType` enum; nothing else calls a check directly.
+- AI providers are registered in `App\Services\Ai\AiProviderRegistry` (one client per provider); `App\Services\Copilot\Copilot` builds the prompt and caches answers.
 - `DomainChecker::evaluate()` runs the registered checks without storing anything; the scheduled run and the DNS check page both use it.
 - Results several checks need (e.g. the STARTTLS certificate for the MX and DANE checks) are shared through `CheckContext::cached()` within one run.
 - `DomainChecker` runs the registered checks for a domain, `ChangeDetector` compares the run with the previous one, and `AlertNotifier` sends the mail.
