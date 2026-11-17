@@ -1,5 +1,5 @@
 <div align="center">
-<img src="docs/logo.svg" width="120" alt="network-tools"/>
+<img src="docs/og.png" alt="network-tools – watches your domains and emails you when something breaks"/>
 
 # network-tools
 ### The self-hosted domain monitor for DNS, mail and TLS
