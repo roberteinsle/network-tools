@@ -36,7 +36,7 @@
         "codeRepository": "https://github.com/roberteinsle/network-tools",
         "programmingLanguage": "PHP",
         "softwareRequirements": "Docker, PostgreSQL",
-        "featureList": ["MX check", "SPF 10-DNS-lookup counter", "DKIM selectors per provider", "DMARC policy and report authorization", "MTA-STS policy check", "TLS-RPT", "BIMI", "DNSSEC validation", "Name server and SOA check (lame delegation, serial)", "CAA record check", "HTTP to HTTPS redirect and HSTS check", "DANE/TLSA check for MX hosts", "TLS certificate expiry (HTTPS and SMTP STARTTLS)", "Domain expiry via RDAP", "DNS blacklist (RBL) check with Spamhaus DQS", "Email alerts on changes", "Passkey login"],
+        "featureList": ["MX check", "SPF 10-DNS-lookup counter", "DKIM selectors per provider", "DMARC policy and report authorization", "MTA-STS policy check", "TLS-RPT", "BIMI", "DNSSEC validation", "Name server and SOA check (delegation and glue at the registry, lame delegation, serial)", "CAA record check", "HTTP to HTTPS redirect and HSTS check", "DANE/TLSA check for MX hosts", "TLS certificate expiry (HTTPS and SMTP STARTTLS)", "Domain expiry via RDAP", "DNS blacklist (RBL) check with Spamhaus DQS", "On-demand DNS check without adding a domain", "Email alerts on changes", "Passkey login"],
         "inLanguage": "en",
         "isAccessibleForFree": true,
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
@@ -125,6 +125,10 @@
             <p>Group domains by customer, inherit DKIM providers, set intervals per domain and send alerts to global, customer and domain recipients. Ideal for agencies and IT service providers.</p>
           </article>
           <article class="feature">
+            <h3>DNS check on demand</h3>
+            <p>Check any domain straight from the menu without adding it: delegation at the registry, every name server, DNSSEC, CAA, MX, SPF and more. Nothing is stored, no mail is sent.</p>
+          </article>
+          <article class="feature">
             <h3>Configured in the browser</h3>
             <p>SMTP, recipients, thresholds, resolvers and the Spamhaus DQS key live in the backend. Secrets are encrypted in the database.</p>
           </article>
@@ -155,7 +159,7 @@
           <div><dt>TLS-RPT</dt><dd>Record and report targets; a warning if MTA-STS is active without TLS reporting.</dd></div>
           <div><dt>BIMI</dt><dd>Record, SVG Tiny PS logo and size, DMARC enforcement requirement, VMC/CMC certificate.</dd></div>
           <div><dt>DNSSEC</dt><dd>DS at the registrar, DNSKEY in the zone, validation via the AD flag, SERVFAIL on bogus signatures, deprecated algorithms.</dd></div>
-          <div><dt>Name servers (NS / SOA)</dt><dd>Every name server queried directly: lame delegation, same SOA serial everywhere, NS list matches the delegation, network spread, sane SOA timers.</dd></div>
+          <div><dt>Name servers (NS / SOA)</dt><dd>Delegation and glue straight from the registry, every name server queried directly with response times: lame delegation, same SOA serial everywhere, NS list matches the delegation, network spread, sane SOA timers.</dd></div>
           <div><dt>CAA</dt><dd>Which certificate authorities may issue, inherited records, wildcard rules, invalid <code>iodef</code> and unknown critical tags.</dd></div>
           <div><dt>TLS certificate (HTTPS)</dt><dd>Trust, host name and expiry for the domain, <code>www.</code> and <code>mta-sts.</code>; outdated TLS versions.</dd></div>
           <div><dt>TLS certificate (SMTP)</dt><dd>Optional STARTTLS on port 25 of every MX host: availability, trust, host name, expiry.</dd></div>

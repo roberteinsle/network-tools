@@ -39,6 +39,17 @@ The domain list shows status, number of problems, customer and the time of the l
 
 The domain page shows the current result of every check with all details, and the history of its check runs.
 
+## DNS check (Werkzeuge → DNS-Check)
+
+Checks any domain right away, without adding it. It uses exactly the same checks as the monitoring, but **nothing is stored and no mail is sent**.
+
+- **Domain name:** any domain, written like on the domain form (no `http://`, no path).
+- **Checks:** the DNS checks are preselected: name servers, DNSSEC, CAA, MX, A/AAAA, PTR, SPF and DMARC. Any other check can be added; certificates, HTTP and blacklists take a few seconds longer.
+- **Options:** DKIM providers and custom selectors, web hosts, and whether port 25 may be used (STARTTLS certificates and the DANE comparison).
+- The result looks like the current state on a domain page: one row per check with status, summary and details.
+- **Monitor** opens the form for a new domain with the name filled in. It is hidden if the domain is already monitored.
+- The page can be opened with a domain filled in: `/admin/dns-check?domain=example.com`.
+
 ## Check runs (Prüfläufe)
 
 The log of all runs: time, domain, overall status, number of detected changes, whether a mail was sent, trigger (scheduled or manual) and duration. Filters show only runs with changes or with a mail. Each run can be opened to see the full results as they were at that time. Runs older than the retention period are deleted at night; the latest run of each domain is always kept.

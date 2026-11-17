@@ -99,6 +99,11 @@ The status of a domain is the worst status of its checks. Checks can be switched
 
 ## Nameservers (NS / SOA)
 
+- **Delegation at the parent:** a server of the parent zone (for `example.com` the `.com` servers) is asked directly which name servers the registry has on file, including glue records.
+  - Error if the registry does not know the domain (NXDOMAIN: not registered, deleted or suspended) and if a name server inside the domain (e.g. `ns1.example.com`) has no glue.
+  - Warning if the delegation differs from the NS records in the zone, or if a glue address differs from the name server's address in DNS.
+  - *Not checkable* if no server of the parent zone answers.
+- **Response times** of every name server are shown in the details. They fluctuate, so they never change the status or trigger a mail.
 - Error if the domain has no NS records, a name server has no address, or a name server does not answer authoritatively for the zone (lame delegation, including REFUSED and SERVFAIL).
 - Warning for a single name server (RFC 2182 asks for at least two), and for a server that does not answer while the others do. If no server answers at all, the result is *not checkable*.
 - Each name server is queried directly, preferring IPv4. The SOA serial must be the same everywhere: a warning if it differs, but only info when the servers have different primaries (deliberate multi-provider setups such as NS1 plus Route 53).

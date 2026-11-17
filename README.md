@@ -33,6 +33,7 @@ A scheduler queues due domains every five minutes, and a worker runs all enabled
 
 - **Alerts on real changes only:** a mail goes out when a check gets worse, is fixed or its records change. Timeouts and resolver hiccups never trigger an alert.
 - **Built for many domains:** group domains by customer, inherit DKIM providers, and send alerts to global, customer and domain recipients.
+- **DNS check on demand:** check any domain from the menu without adding it – same rules, nothing stored, no mail.
 - **Everything in the backend:** SMTP, recipients, thresholds, intervals, resolvers and the Spamhaus DQS key are configured in the UI. Secrets are stored encrypted.
 
 ## Checks
@@ -49,7 +50,7 @@ A scheduler queues due domains every five minutes, and a worker runs all enabled
 | [TLS-RPT](https://github.com/roberteinsle/network-tools/wiki/Checks#tls-rpt) | Record and report targets |
 | [BIMI](https://github.com/roberteinsle/network-tools/wiki/Checks#bimi) | Record, SVG Tiny PS logo, DMARC requirement, VMC |
 | [DNSSEC](https://github.com/roberteinsle/network-tools/wiki/Checks#dnssec) | DS at the registrar, DNSKEY, validation via the AD flag |
-| [Name servers](https://github.com/roberteinsle/network-tools/wiki/Checks#nameservers-ns--soa) | NS count and addresses, lame delegation, SOA serial on every server, SOA values |
+| [Name servers](https://github.com/roberteinsle/network-tools/wiki/Checks#nameservers-ns--soa) | Delegation and glue at the registry, lame delegation, response times, SOA serial on every server, SOA values |
 | [CAA](https://github.com/roberteinsle/network-tools/wiki/Checks#caa) | Allowed certificate authorities, inherited records, critical tags, iodef |
 | [TLS certificates](https://github.com/roberteinsle/network-tools/wiki/Checks#tls-certificate-https) | HTTPS (domain, www, mta-sts) and optional MX STARTTLS on port 25: trust, host name, expiry |
 | [HTTP → HTTPS / HSTS](https://github.com/roberteinsle/network-tools/wiki/Checks#http--https--hsts) | Redirect from HTTP to HTTPS, HSTS header with max-age, includeSubDomains and preload |

@@ -139,6 +139,71 @@ class CaaAndNsCheckTest extends TestCase
         $this->assertSame(CheckStatus::Info, $out->status(), $this->texts($out));
     }
 
+    /** Delegation wie bei der .com-Registry: Server a.gtld.test unter 192.0.2.53. */
+    private function withParent(array $records): array
+    {
+        return [...$records, 'com. 300 IN NS a.gtld.test.', 'a.gtld.test. 300 IN A 192.0.2.53'];
+    }
+
+    private function healthy(): array
+    {
+        return [
+            '192.0.2.1' => $this->authoritative($this->zone(1)),
+            '198.51.100.1' => $this->authoritative($this->zone(1)),
+        ];
+    }
+
+    #[Test]
+    public function delegation_matching_the_zone_is_ok_and_shown(): void
+    {
+        $parent = (new FakeDnsResolver)->referral('example.com', 'NS', ['example.com. 172800 IN NS ns1.example.net.', 'example.com. 172800 IN NS ns2.example.org.']);
+        $out = $this->ns($this->withParent(self::DELEGATION), [...$this->healthy(), '192.0.2.53' => $parent]);
+
+        $this->assertSame(CheckStatus::Ok, $out->status(), $this->texts($out));
+        $this->assertSame(['ns1.example.net', 'ns2.example.org'], $out->getState()['delegation']['delegated']);
+        $this->assertArrayHasKey('Antwortzeit', $out->details()['data']);
+    }
+
+    #[Test]
+    public function delegation_mismatch_and_missing_glue_are_reported(): void
+    {
+        $records = [
+            'example.com. 300 IN NS ns1.example.com.',
+            'example.com. 300 IN NS ns2.example.org.',
+            'ns1.example.com. 300 IN A 192.0.2.1',
+            'ns2.example.org. 300 IN A 198.51.100.1',
+        ];
+        $zone = [
+            'example.com. 300 IN SOA ns1.example.com. hostmaster.example.com. 1 7200 3600 1209600 3600',
+            'example.com. 300 IN NS ns1.example.com.',
+            'example.com. 300 IN NS ns2.example.org.',
+        ];
+        $parent = (new FakeDnsResolver)->referral('example.com', 'NS', [
+            'example.com. 172800 IN NS ns1.example.com.',
+            'example.com. 172800 IN NS ns3.example.org.',
+        ]);
+        $out = $this->ns($this->withParent($records), [
+            '192.0.2.1' => $this->authoritative($zone),
+            '198.51.100.1' => $this->authoritative($zone),
+            '192.0.2.53' => $parent,
+        ]);
+
+        $this->assertSame(CheckStatus::Error, $out->status());
+        $this->assertStringContainsString('weicht von den NS-Records der Zone', $this->texts($out));
+        $this->assertStringContainsString('ns1.example.com: liegt in der eigenen Domain, aber die Registry hat keinen Glue-Record', $this->texts($out));
+    }
+
+    #[Test]
+    public function unregistered_domain_is_an_error(): void
+    {
+        $parent = new FakeDnsResolver;
+        $parent->nxdomain = ['example.com'];
+        $out = $this->ns($this->withParent(self::DELEGATION), [...$this->healthy(), '192.0.2.53' => $parent]);
+
+        $this->assertSame(CheckStatus::Error, $out->status());
+        $this->assertStringContainsString('NXDOMAIN', $this->texts($out));
+    }
+
     #[Test]
     public function single_nameserver_is_a_warning(): void
     {

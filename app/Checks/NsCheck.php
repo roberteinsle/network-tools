@@ -8,8 +8,9 @@ use App\Support\Dns\DnsException;
 use App\Support\Dns\NameserverProbe;
 
 /**
- * Nameserver und SOA: Anzahl und Adressen der NS, autoritative Antworten (Lame Delegation),
- * gleiche SOA-Serial und gleiche NS-Liste auf allen Servern, Netz-Verteilung, SOA-Werte.
+ * Nameserver und SOA: Delegation und Glue beim Parent (Registry), Anzahl und Adressen der NS,
+ * autoritative Antworten (Lame Delegation), Antwortzeiten, gleiche SOA-Serial und gleiche
+ * NS-Liste auf allen Servern, Netz-Verteilung, SOA-Werte.
  */
 class NsCheck implements Check
 {
@@ -38,6 +39,7 @@ class NsCheck implements Check
         $lame = [];
         $unreachable = [];
         $nsSets = [];
+        $times = [];
 
         foreach ($ns as $host) {
             try {
@@ -59,7 +61,9 @@ class NsCheck implements Check
             $resolver = $this->probe->resolver($ip);
 
             try {
+                $t0 = hrtime(true);
                 $answer = $resolver->query($name, 'SOA');
+                $times[$host] = (int) round((hrtime(true) - $t0) / 1e6);
             } catch (DnsException $e) {
                 if ($e->isRefused() || $e->isServFail()) {
                     $out->error("{$host} ({$ip}): verweigert die Antwort für die Zone (Lame Delegation).");
@@ -96,9 +100,15 @@ class NsCheck implements Check
         }
 
         $out->data('Nameserver', array_map(fn ($h) => $h.' → '.implode(', ', $ips[$h] ?? ['keine Adresse']), $ns));
+        // Antwortzeiten nur anzeigen: sie schwanken und dürfen weder Status noch Zustand beeinflussen
+        if ($times !== []) {
+            $out->data('Antwortzeit', array_map(fn ($h, $ms) => "{$h}: {$ms} ms", array_keys($times), $times));
+        }
+
+        $delegation = $this->delegation($ctx, $out, $name, $ns, $ips);
 
         if ($soas === []) {
-            return $out->state(['ns' => $ns, 'lame' => $lame]);
+            return $out->state(['ns' => $ns, 'lame' => $lame, 'delegation' => $delegation]);
         }
 
         $serials = array_map(fn ($rr) => (int) $rr->serial, $soas);
@@ -167,7 +177,122 @@ class NsCheck implements Check
             'lame' => $lame,
             'serial_mismatch' => $serialMismatch,
             'ns_mismatch' => $nsMismatch,
+            'delegation' => $delegation,
             'soa' => [rtrim((string) $soa->mname, '.'), rtrim((string) $soa->rname, '.'), $refresh, $retry, $expire, $minimum],
         ]);
+    }
+
+    /**
+     * Fragt einen Server der übergeordneten Zone (bei example.com die .com-Server) direkt nach
+     * der Delegation: welche NS trägt die Registry ein, und gibt es Glue für NS in der eigenen Domain?
+     *
+     * @param  list<string>  $ns  NS-Records laut Resolver
+     * @param  array<string, list<string>>  $ips  aufgelöste Adressen der NS
+     */
+    private function delegation(CheckContext $ctx, CheckOutcome $out, string $name, array $ns, array $ips): ?array
+    {
+        $labels = explode('.', $name);
+        $parent = null;
+        $parentNs = [];
+        for ($i = 1; $i < count($labels) && $parentNs === []; $i++) {
+            $parent = implode('.', array_slice($labels, $i));
+            try {
+                $parentNs = $ctx->dns->ns($parent);
+            } catch (DnsException) {
+                $parentNs = [];
+            }
+        }
+        if ($parentNs === []) {
+            return null;
+        }
+
+        $answer = null;
+        $server = null;
+        foreach (array_slice($parentNs, 0, 3) as $candidate) {
+            try {
+                $candidateIps = $ctx->dns->ips($candidate);
+                $v4 = array_values(array_filter($candidateIps, fn ($ip) => filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)));
+                if (($ip = $v4[0] ?? $candidateIps[0] ?? null) === null) {
+                    continue;
+                }
+                $answer = $this->probe->resolver($ip)->query($name, 'NS');
+                $server = $candidate;
+                break;
+            } catch (DnsException) {
+                continue;
+            }
+        }
+
+        if ($answer === null) {
+            $out->add(CheckStatus::Unknown, "Delegation bei {$parent} nicht abfragbar – kein Server der übergeordneten Zone antwortet.");
+
+            return null;
+        }
+        if ($answer->nxdomain) {
+            $out->error("Die Registry ({$parent}) kennt die Domain nicht (NXDOMAIN) – nicht registriert, gelöscht oder gesperrt.");
+
+            return ['parent' => $parent, 'delegated' => [], 'glue' => []];
+        }
+
+        $records = $answer->authorityOfType('NS') ?: $answer->ofType('NS');
+        $delegated = [];
+        foreach ($records as $rr) {
+            if (strcasecmp(rtrim((string) $rr->name, '.'), $name) === 0) {
+                $delegated[] = rtrim(strtolower((string) $rr->nsdname), '.');
+            }
+        }
+        $delegated = array_values(array_unique($delegated));
+        sort($delegated);
+
+        $glue = [];
+        foreach ([...$answer->additionalOfType('A'), ...$answer->additionalOfType('AAAA')] as $rr) {
+            $glue[rtrim(strtolower((string) $rr->name), '.')][] = self::normalizeIp((string) $rr->address);
+        }
+        ksort($glue);
+
+        $out->data("Delegation ({$parent}, {$server})", array_map(
+            fn ($h) => $h.(isset($glue[$h]) ? ' – Glue: '.implode(', ', $glue[$h]) : ''),
+            $delegated ?: ['keine'],
+        ));
+
+        if ($delegated === []) {
+            $out->warning("Keine Delegation bei {$parent} gefunden – die Registry verweist auf keine Nameserver.");
+
+            return ['parent' => $parent, 'delegated' => [], 'glue' => []];
+        }
+
+        if ($delegated !== $ns) {
+            $out->warning('Delegation bei der Registry ('.implode(', ', $delegated).') weicht von den NS-Records der Zone ('.implode(', ', $ns).') ab.');
+        }
+
+        foreach ($delegated as $host) {
+            $inBailiwick = str_ends_with($host, '.'.$name);
+            if ($inBailiwick && ! isset($glue[$host])) {
+                $out->error("{$host}: liegt in der eigenen Domain, aber die Registry hat keinen Glue-Record – die Domain ist nicht auflösbar.");
+            } elseif (isset($glue[$host], $ips[$host])) {
+                $a = $glue[$host];
+                $b = array_map(self::normalizeIp(...), $ips[$host]);
+                sort($a);
+                sort($b);
+                if (array_diff($a, $b) !== []) {
+                    $out->warning("{$host}: Glue bei der Registry (".implode(', ', $a).') weicht von der Adresse in DNS ('.implode(', ', $b).') ab.');
+                }
+            }
+        }
+
+        foreach ($glue as &$addresses) {
+            sort($addresses);
+        }
+        unset($addresses);
+
+        return ['parent' => $parent, 'delegated' => $delegated, 'glue' => $glue];
+    }
+
+    /** Einheitliche Schreibweise, damit z. B. 2001:db8::1 und 2001:db8:0:0:0:0:0:1 gleich sind. */
+    private static function normalizeIp(string $ip): string
+    {
+        $packed = @inet_pton($ip);
+
+        return $packed === false ? $ip : (string) inet_ntop($packed);
     }
 }

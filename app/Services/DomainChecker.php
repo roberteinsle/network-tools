@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Checks\CheckContext;
 use App\Checks\CheckOutcome;
 use App\Enums\CheckStatus;
+use App\Enums\CheckType;
 use App\Models\AppSetting;
 use App\Models\CheckResult;
 use App\Models\CheckRun;
@@ -29,32 +30,9 @@ class DomainChecker
 
     public function run(Domain $domain, string $trigger = 'schedule'): CheckRun
     {
-        $settings = AppSetting::current();
-        $ctx = new CheckContext(
-            $domain->loadMissing('customer'),
-            new DnsResolver($settings->dnsResolvers()),
-            new DnsResolver($settings->rblResolvers(), 3.0),
-            $settings,
-        );
-
         $started = now();
         $t0 = hrtime(true);
-        $outcomes = [];
-
-        foreach ($this->registry->all() as $check) {
-            $type = $check->type();
-            if (! $domain->isCheckEnabled($type)) {
-                continue;
-            }
-            try {
-                $outcomes[$type->value] = $check->run($ctx);
-            } catch (DnsException $e) {
-                $outcomes[$type->value] = CheckOutcome::make()->add(CheckStatus::Unknown, 'DNS nicht abfragbar: '.$e->getMessage());
-            } catch (Throwable $e) {
-                Log::warning("Check {$type->value} für {$domain->name} fehlgeschlagen", ['exception' => $e]);
-                $outcomes[$type->value] = CheckOutcome::make()->add(CheckStatus::Unknown, 'Prüfung nicht möglich: '.mb_strimwidth($e->getMessage(), 0, 300, '…'));
-            }
-        }
+        $outcomes = $this->evaluate($domain->loadMissing('customer'));
 
         $previous = $domain->latestRun()->with('results')->first();
         $overall = CheckStatus::worst(array_map(fn (CheckOutcome $o) => $o->status(), $outcomes));
@@ -94,7 +72,7 @@ class DomainChecker
         $changes = ChangeDetector::compare($previous, $run);
         $run->update(['changes' => $changes, 'changes_count' => count($changes)]);
 
-        if ($this->shouldNotify($previous, $run, $changes, $settings)) {
+        if ($this->shouldNotify($previous, $run, $changes, AppSetting::current())) {
             $mailChanges = array_values(array_filter($changes, fn ($c) => ! ($c['quiet'] ?? false)));
             if ($this->notifier->send($domain, $run, $mailChanges, $previous === null)) {
                 $run->update(['notified_at' => now()]);
@@ -117,5 +95,41 @@ class DomainChecker
         }
 
         return $changes !== [];
+    }
+
+    /**
+     * Führt die registrierten Prüfungen aus, ohne etwas zu speichern oder zu melden
+     * (auch für nicht gespeicherte Domains, z. B. den DNS-Check im Menü).
+     *
+     * @param  list<CheckType>|null  $only  nur diese Prüfungen (null = alle an der Domain aktiven)
+     * @return array<string, CheckOutcome>
+     */
+    public function evaluate(Domain $domain, ?array $only = null): array
+    {
+        $settings = AppSetting::current();
+        $ctx = new CheckContext(
+            $domain,
+            new DnsResolver($settings->dnsResolvers()),
+            new DnsResolver($settings->rblResolvers(), 3.0),
+            $settings,
+        );
+        $outcomes = [];
+
+        foreach ($this->registry->all() as $check) {
+            $type = $check->type();
+            if ($only !== null ? ! in_array($type, $only, true) : ! $domain->isCheckEnabled($type)) {
+                continue;
+            }
+            try {
+                $outcomes[$type->value] = $check->run($ctx);
+            } catch (DnsException $e) {
+                $outcomes[$type->value] = CheckOutcome::make()->add(CheckStatus::Unknown, 'DNS nicht abfragbar: '.$e->getMessage());
+            } catch (Throwable $e) {
+                Log::warning("Check {$type->value} für {$domain->name} fehlgeschlagen", ['exception' => $e]);
+                $outcomes[$type->value] = CheckOutcome::make()->add(CheckStatus::Unknown, 'Prüfung nicht möglich: '.mb_strimwidth($e->getMessage(), 0, 300, '…'));
+            }
+        }
+
+        return $outcomes;
     }
 }

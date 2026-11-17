@@ -10,6 +10,14 @@ class CreateDomain extends CreateRecord
 {
     protected static string $resource = DomainResource::class;
 
+    /** Aus dem DNS-Check übernommen: ?name=beispiel.de vorbelegen. */
+    protected function afterFill(): void
+    {
+        if (filled($name = request()->query('name'))) {
+            $this->form->fill([...$this->form->getRawState(), 'name' => (string) $name]);
+        }
+    }
+
     /** Neue Domains sofort einmal prüfen. */
     protected function afterCreate(): void
     {

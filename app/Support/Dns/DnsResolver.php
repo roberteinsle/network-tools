@@ -51,7 +51,14 @@ class DnsResolver
             throw new DnsException("DNS-Abfrage {$name} {$type} nicht möglich: ".$e->getMessage());
         }
 
-        return new DnsAnswer(array_values($response->answer), (bool) $response->header->ad, false, (bool) $response->header->aa);
+        return new DnsAnswer(
+            array_values($response->answer),
+            (bool) $response->header->ad,
+            false,
+            (bool) $response->header->aa,
+            array_values($response->authority),
+            array_values($response->additional),
+        );
     }
 
     private function resolver(): Resolver

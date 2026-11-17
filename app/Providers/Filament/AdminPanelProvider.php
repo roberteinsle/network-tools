@@ -36,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 NavigationGroup::make('Überwachung'),
+                NavigationGroup::make('Werkzeuge'),
                 NavigationGroup::make('Einstellungen')->collapsed(false),
             ])
             ->databaseNotifications(false)
