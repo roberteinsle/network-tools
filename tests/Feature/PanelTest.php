@@ -30,7 +30,7 @@ class PanelTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->actingAs(User::create(['name' => 'Robert', 'email' => 'robert@example.com']));
+        $this->actingAs(User::create(['name' => 'Test User', 'email' => 'user@example.com']));
 
         $customer = Customer::create(['name' => 'Kunde A', 'dkim_providers' => ['m365']]);
         $this->domain = Domain::create(['name' => 'example.com', 'customer_id' => $customer->id]);

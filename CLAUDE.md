@@ -54,6 +54,7 @@ Self-hosted domain monitor: Laravel 13 + Filament 5 on PHP 8.5, PostgreSQL in pr
 
 - Each check is a class in `app/Checks` implementing `App\Checks\Check` (`type()`, `run(CheckContext): CheckOutcome`).
 - Checks are registered only in `App\Services\CheckRegistry` (plus a case in `App\Enums\CheckType`). `DomainChecker` runs whatever the registry returns; `ChangeDetector` compares runs; `AlertNotifier` sends mails. New features plug in through the registries, never through direct calls between checks or services.
+- Results several checks need (e.g. the STARTTLS certificate for `TlsMxCheck` and `DaneCheck`) go through `CheckContext::cached()`; the registry order decides who fetches first. Direct queries to authoritative name servers go through `App\Support\Dns\NameserverProbe` so tests can fake them.
 - `scheduler` runs `domains:check-due` every 5 minutes, `worker` runs `CheckDomainJob` (timeout 300 s, `DB_QUEUE_RETRY_AFTER` must be larger), `model:prune` runs nightly.
 - Settings live in the single-row `app_settings` table (`AppSetting::current()`); secrets are encrypted with `APP_KEY`.
 

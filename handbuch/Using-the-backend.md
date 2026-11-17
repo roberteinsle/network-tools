@@ -29,7 +29,7 @@ Customers group domains, which is useful for agencies and IT service providers.
 | DKIM | Inherit providers from the customer, or pick providers for this domain; plus custom selectors. |
 | Web hosts | Hosts for the A/AAAA and HTTPS certificate checks. Empty means the domain and `www.`. |
 | Outgoing mail server IPs | Checked for PTR and blacklists in addition to the MX IPs. |
-| Check MX STARTTLS certificates | Needs outgoing port 25. |
+| Check MX STARTTLS certificates | Needs outgoing port 25. Also enables the DANE certificate comparison. |
 | Notify on IP changes | Off: IP changes of A/AAAA and PTR are only logged. |
 | Disabled checks | Checks to skip for this domain. |
 | Additional recipients | Alert recipients for this domain only. |

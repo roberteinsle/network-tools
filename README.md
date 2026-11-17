@@ -13,7 +13,7 @@
 
 ---
 
-network-tools (the app is called **Domain-Monitor**) watches your domains around the clock: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates, domain expiry and blacklists. It keeps a history of every check and emails you when something breaks or changes, such as a new SPF record, an expiring certificate or a blacklist listing. It runs on your own server, logs in with passkeys and has no passwords.
+network-tools (the app is called **Domain-Monitor**) watches your domains around the clock: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers, CAA, TLS certificates, HTTPS/HSTS, DANE, domain expiry and blacklists. It keeps a history of every check and emails you when something breaks or changes, such as a new SPF record, an expiring certificate or a blacklist listing. It runs on your own server, logs in with passkeys and has no passwords.
 
 ## Installation & quick start
 
@@ -49,7 +49,11 @@ A scheduler queues due domains every five minutes, and a worker runs all enabled
 | [TLS-RPT](https://github.com/roberteinsle/network-tools/wiki/Checks#tls-rpt) | Record and report targets |
 | [BIMI](https://github.com/roberteinsle/network-tools/wiki/Checks#bimi) | Record, SVG Tiny PS logo, DMARC requirement, VMC |
 | [DNSSEC](https://github.com/roberteinsle/network-tools/wiki/Checks#dnssec) | DS at the registrar, DNSKEY, validation via the AD flag |
+| [Name servers](https://github.com/roberteinsle/network-tools/wiki/Checks#nameservers-ns--soa) | NS count and addresses, lame delegation, SOA serial on every server, SOA values |
+| [CAA](https://github.com/roberteinsle/network-tools/wiki/Checks#caa) | Allowed certificate authorities, inherited records, critical tags, iodef |
 | [TLS certificates](https://github.com/roberteinsle/network-tools/wiki/Checks#tls-certificate-https) | HTTPS (domain, www, mta-sts) and optional MX STARTTLS on port 25: trust, host name, expiry |
+| [HTTP → HTTPS / HSTS](https://github.com/roberteinsle/network-tools/wiki/Checks#http--https--hsts) | Redirect from HTTP to HTTPS, HSTS header with max-age, includeSubDomains and preload |
+| [DANE](https://github.com/roberteinsle/network-tools/wiki/Checks#dane-tlsa) | TLSA records of the MX hosts, DNSSEC, and a match against the MX certificate |
 | [Domain expiry](https://github.com/roberteinsle/network-tools/wiki/Checks#domain-expiry) | RDAP via IANA bootstrap |
 | [Blacklists](https://github.com/roberteinsle/network-tools/wiki/Checks#blacklists) | A small set of free RBLs; **Spamhaus only via DQS** with your own key |
 

@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\Domain;
 use App\Support\Dns\DnsException;
 use App\Support\Dns\DnsResolver;
+use Throwable;
 
 /**
  * Gemeinsamer Kontext eines Prüflaufs: Domain, Resolver, Einstellungen und
@@ -34,6 +35,27 @@ class CheckContext
         }
 
         return $this->memo[$key];
+    }
+
+    /**
+     * Ergebnis teurer Abfragen, die mehrere Prüfungen brauchen (z. B. STARTTLS-Zertifikat
+     * für TLS-MX und DANE), einmal pro Lauf. Ausnahmen werden mitgespeichert und erneut geworfen.
+     */
+    public function cached(string $key, callable $fn): mixed
+    {
+        $result = $this->remember('cached:'.$key, function () use ($fn) {
+            try {
+                return ['value' => $fn()];
+            } catch (Throwable $e) {
+                return ['error' => $e];
+            }
+        });
+
+        if (isset($result['error'])) {
+            throw $result['error'];
+        }
+
+        return $result['value'];
     }
 
     /** @return list<array{pref:int, host:string}> */

@@ -14,8 +14,12 @@
 - TLS-RPT: record and report targets; warning if MTA-STS is active without TLS-RPT
 - BIMI: record, SVG Tiny PS logo up to 32 KB, DMARC enforcement requirement, VMC/CMC
 - DNSSEC: DS at the parent, DNSKEY, validation via the AD flag, SERVFAIL detection, deprecated algorithms
+- Name servers (NS/SOA): each authoritative server queried directly; lame delegation, SOA serial consistency (info only for multi-provider setups), NS list vs delegation, same /24 network, SOA timer sanity
+- CAA: allowed CAs (issue/issuewild), lookup climbs to parent names, issue ";" warning, unknown critical tags, iodef
 - TLS certificate (HTTPS): trust, host name, expiry for domain, www and mta-sts; outdated TLS versions
 - TLS certificate (SMTP STARTTLS, optional, needs outgoing port 25): availability, trust, host name, expiry
+- HTTP → HTTPS / HSTS: redirect chain from http:// to https:// (up to 6 hops), Strict-Transport-Security max-age (recommended ≥ 1 year), includeSubDomains, preload readiness
+- DANE (TLSA): _25._tcp TLSA of every MX host, DNSSEC validation, usage 3 1 1 / 2 1 1 recommended, match against the STARTTLS certificate when port 25 is available
 - Domain expiry: RDAP via IANA bootstrap; registries without RDAP expiry (e.g. DENIC for .de) are reported as info
 - Blacklists: free RBLs (SpamCop, PSBL, Mailspike, UCEPROTECT Level 1, SURBL, URIBL; Barracuda optional); Spamhaus ZEN and DBL only via Spamhaus DQS with your own key
 

@@ -11,6 +11,8 @@ final class DnsAnswer
         public readonly array $records,
         public readonly bool $authenticated = false,
         public readonly bool $nxdomain = false,
+        /** AA-Flag: Antwort kommt von einem autoritativen Server für die Zone. */
+        public readonly bool $authoritative = false,
     ) {}
 
     /** @return list<RR> */

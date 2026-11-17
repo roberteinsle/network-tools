@@ -21,6 +21,8 @@ class DnsResolver
     public function __construct(
         private readonly array|string $nameservers,
         private readonly float $timeout = 4.0,
+        /** false = direkte Abfrage eines autoritativen Servers (RD-Bit aus). */
+        private readonly bool $recurse = true,
     ) {}
 
     public function query(string $name, string $type, bool $dnssec = false): DnsAnswer
@@ -49,7 +51,7 @@ class DnsResolver
             throw new DnsException("DNS-Abfrage {$name} {$type} nicht möglich: ".$e->getMessage());
         }
 
-        return new DnsAnswer(array_values($response->answer), (bool) $response->header->ad);
+        return new DnsAnswer(array_values($response->answer), (bool) $response->header->ad, false, (bool) $response->header->aa);
     }
 
     private function resolver(): Resolver
@@ -57,6 +59,7 @@ class DnsResolver
         if ($this->resolver === null) {
             $this->resolver = new Resolver(['nameservers' => $this->nameservers, 'timeout' => $this->timeout]);
             $this->resolver->ns_random = false;
+            $this->resolver->recurse = $this->recurse;
         }
 
         return $this->resolver;
@@ -91,6 +94,15 @@ class DnsResolver
         usort($list, fn ($a, $b) => [$a['pref'], $a['host']] <=> [$b['pref'], $b['host']]);
 
         return $list;
+    }
+
+    /** @return list<string> Nameserver-Hostnamen, sortiert */
+    public function ns(string $domain): array
+    {
+        $list = array_map(fn (RR $rr) => rtrim(strtolower((string) $rr->nsdname), '.'), $this->query($domain, 'NS')->ofType('NS'));
+        sort($list);
+
+        return array_values(array_unique($list));
     }
 
     /** TXT-Records, Zeichenketten pro Record zusammengefügt. @return list<string> */

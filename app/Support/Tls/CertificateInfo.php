@@ -17,6 +17,10 @@ final class CertificateInfo
         public readonly bool $trusted,
         public readonly ?string $verifyError = null,
         public readonly ?string $protocol = null,
+        /** Serverzertifikat als PEM (für den DANE-Abgleich). */
+        public readonly ?string $pem = null,
+        /** @var list<string> Vom Server gesendete Kette als PEM, Serverzertifikat zuerst. */
+        public readonly array $chain = [],
     ) {}
 
     public function daysLeft(): int

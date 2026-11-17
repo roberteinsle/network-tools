@@ -32,10 +32,10 @@ class AuthTest extends TestCase
     public function requesting_a_link_sends_mail_only_for_existing_users_with_same_response(): void
     {
         Mail::fake();
-        User::create(['name' => 'Robert', 'email' => 'robert@example.com']);
+        User::create(['name' => 'Test User', 'email' => 'user@example.com']);
 
         Livewire::test(Login::class)
-            ->fillForm(['email' => 'robert@example.com'])
+            ->fillForm(['email' => 'user@example.com'])
             ->call('authenticate')
             ->assertNotified('Prüfe dein Postfach');
         Mail::assertSent(MagicLinkMail::class, 1);
@@ -50,7 +50,7 @@ class AuthTest extends TestCase
     #[Test]
     public function magic_link_logs_in_exactly_once(): void
     {
-        $user = User::create(['name' => 'Robert', 'email' => 'robert@example.com']);
+        $user = User::create(['name' => 'Test User', 'email' => 'user@example.com']);
         $url = app(MagicLink::class)->createUrl($user);
 
         // GET verbraucht das Token nicht (Link-Scanner)
@@ -69,7 +69,7 @@ class AuthTest extends TestCase
     #[Test]
     public function magic_link_expires_after_15_minutes(): void
     {
-        $user = User::create(['name' => 'Robert', 'email' => 'robert@example.com']);
+        $user = User::create(['name' => 'Test User', 'email' => 'user@example.com']);
         $url = app(MagicLink::class)->createUrl($user);
 
         $this->travel(16)->minutes();
@@ -81,7 +81,7 @@ class AuthTest extends TestCase
     #[Test]
     public function tampered_signature_is_rejected(): void
     {
-        $user = User::create(['name' => 'Robert', 'email' => 'robert@example.com']);
+        $user = User::create(['name' => 'Test User', 'email' => 'user@example.com']);
         $url = app(MagicLink::class)->createUrl($user);
 
         $this->post(preg_replace('/signature=[a-f0-9]+/', 'signature=deadbeef', $url))->assertForbidden();
@@ -90,7 +90,7 @@ class AuthTest extends TestCase
 
     public static function injectionPayloads(): array
     {
-        return [["' OR '1'='1"], ["admin'--"], ['robert@example.com\' OR 1=1 --']];
+        return [["' OR '1'='1"], ["admin'--"], ['user@example.com\' OR 1=1 --']];
     }
 
     #[Test]
@@ -98,7 +98,7 @@ class AuthTest extends TestCase
     public function sql_injection_payloads_are_rejected_without_db_error(string $payload): void
     {
         Mail::fake();
-        User::create(['name' => 'Robert', 'email' => 'robert@example.com']);
+        User::create(['name' => 'Test User', 'email' => 'user@example.com']);
 
         Livewire::test(Login::class)
             ->fillForm(['email' => $payload])

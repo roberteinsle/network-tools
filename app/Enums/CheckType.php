@@ -16,8 +16,12 @@ enum CheckType: string implements HasLabel
     case TlsRpt = 'tls_rpt';
     case Bimi = 'bimi';
     case Dnssec = 'dnssec';
+    case Ns = 'ns';
+    case Caa = 'caa';
     case TlsWeb = 'tls_web';
+    case Http = 'http';
     case TlsMx = 'tls_mx';
+    case Dane = 'dane';
     case DomainExpiry = 'domain_expiry';
     case Blacklist = 'blacklist';
 
@@ -34,8 +38,12 @@ enum CheckType: string implements HasLabel
             self::TlsRpt => 'TLS-RPT',
             self::Bimi => 'BIMI',
             self::Dnssec => 'DNSSEC',
+            self::Ns => 'Nameserver (NS / SOA)',
+            self::Caa => 'CAA',
             self::TlsWeb => 'TLS-Zertifikat (HTTPS)',
+            self::Http => 'HTTP → HTTPS / HSTS',
             self::TlsMx => 'TLS-Zertifikat (MX / STARTTLS)',
+            self::Dane => 'DANE (TLSA)',
             self::DomainExpiry => 'Domain-Ablauf',
             self::Blacklist => 'Blacklists',
         };

@@ -30,7 +30,7 @@ class TlsMxCheck implements Check
         $unreachable = 0;
         foreach ($hosts as $host) {
             try {
-                $cert = $this->tls->starttls($host);
+                $cert = $ctx->cached('starttls:'.$host, fn () => $this->tls->starttls($host));
             } catch (StartTlsUnsupported $e) {
                 $out->error("{$host}: kein STARTTLS – Mails werden unverschlüsselt übertragen.");
                 $state[$host] = 'no-starttls';

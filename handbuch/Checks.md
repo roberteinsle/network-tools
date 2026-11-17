@@ -97,17 +97,53 @@ The status of a domain is the worst status of its checks. Checks can be switched
 - Error for SERVFAIL (likely a bogus signature: the domain is unreachable for validating resolvers) or a DS without DNSKEYs.
 - Warning for deprecated algorithms.
 
+## Nameservers (NS / SOA)
+
+- Error if the domain has no NS records, a name server has no address, or a name server does not answer authoritatively for the zone (lame delegation, including REFUSED and SERVFAIL).
+- Warning for a single name server (RFC 2182 asks for at least two), and for a server that does not answer while the others do. If no server answers at all, the result is *not checkable*.
+- Each name server is queried directly, preferring IPv4. The SOA serial must be the same everywhere: a warning if it differs, but only info when the servers have different primaries (deliberate multi-provider setups such as NS1 plus Route 53).
+- Warning if a server lists other name servers in the zone than the delegation.
+- Info if all name servers are in the same IPv4 /24 network.
+- SOA values: warning if `retry` is not smaller than `refresh` or `expire` is not larger than `refresh + retry`; info if `expire` is below one week or the negative TTL (`minimum`) above one day.
+- The serial itself is not part of the change detection, because it changes with every zone edit.
+
+## CAA
+
+- Optional: info if there is no CAA record (every certificate authority may issue).
+- Looked up like a CA does: at the domain first, then at the parent names (without the TLD). An inherited record is shown in the details.
+- OK lists the allowed CAs (`issue`); the `issuewild` rule is shown in the details.
+- Warning if `issue ";"` forbids all CAs (certificates can no longer be renewed) and for invalid `iodef` targets.
+- Error for an unknown tag with the critical flag (128): CAs must then refuse to issue.
+
 ## TLS certificate (HTTPS)
 
 - Connects to the web hosts (domain and `www.` by default) and to `mta-sts.<domain>` if MTA-STS is published.
 - Error if HTTPS is unreachable, the certificate is not trusted or does not match the host name, or it expires within the error threshold; warning within the warning threshold (see [Configuration](Configuration.md)).
 - Warning for outdated TLS protocol versions.
 
+## HTTP → HTTPS / HSTS
+
+- For each web host with an address (domain and `www.` by default): requests `http://<host>/` and follows up to six redirects, including relative ones.
+- OK if the chain ends on `https://`; warning if HTTP is served without a redirect to HTTPS. Info if port 80 is closed (HTTPS-only is fine).
+- Reads the `Strict-Transport-Security` header of `https://<host>/` itself (not of a redirect target):
+  - warning if it is missing or `max-age=0`,
+  - info if `max-age` is below one year,
+  - info if `preload` is set without `includeSubDomains` or a one-year `max-age`, which the preload list requires.
+- Certificate errors are ignored here, because the HTTPS certificate check reports them.
+
 ## TLS certificate (MX / STARTTLS)
 
 - Optional per domain, because it needs outgoing port 25.
 - Connects to every MX host on port 25, runs STARTTLS and checks trust, host name and expiry like the HTTPS check.
 - Error if a host does not offer STARTTLS.
+
+## DANE (TLSA)
+
+- Looks up `_25._tcp.<mx>` TLSA records for every MX host (RFC 7672). Optional: info if no MX host has TLSA.
+- Warning if the TLSA records or the domain's MX records are not DNSSEC-validated (senders then ignore DANE), and if some MX hosts have TLSA and others do not.
+- Warning for usage 0 or 1 (PKIX), which RFC 7672 does not intend for SMTP; `3 1 1` with `2 1 1` as a fallback is recommended. Error for invalid parameters.
+- If *Check MX STARTTLS certificates* is enabled on the domain (needs outgoing port 25), the certificate of each MX is compared with its TLSA records: usage 3 against the server certificate, usage 2 against the chain. Error if no record matches or the host offers no STARTTLS, because DANE-validating senders will not deliver mail then. The STARTTLS connection is shared with the MX certificate check.
+- If the TLSA query fails for a host (Exchange Online answers with SERVFAIL), it is reported as *not checkable* only if other hosts use DANE.
 
 ## Domain expiry
 

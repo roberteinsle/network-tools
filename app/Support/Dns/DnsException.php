@@ -16,4 +16,9 @@ class DnsException extends RuntimeException
     {
         return $this->rcode === 2;
     }
+
+    public function isRefused(): bool
+    {
+        return $this->rcode === 5;
+    }
 }

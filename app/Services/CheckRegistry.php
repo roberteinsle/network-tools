@@ -5,13 +5,17 @@ namespace App\Services;
 use App\Checks\AddressCheck;
 use App\Checks\BimiCheck;
 use App\Checks\BlacklistCheck;
+use App\Checks\CaaCheck;
 use App\Checks\Check;
+use App\Checks\DaneCheck;
 use App\Checks\DkimCheck;
 use App\Checks\DmarcCheck;
 use App\Checks\DnssecCheck;
 use App\Checks\DomainExpiryCheck;
+use App\Checks\HttpCheck;
 use App\Checks\MtaStsCheck;
 use App\Checks\MxCheck;
+use App\Checks\NsCheck;
 use App\Checks\PtrCheck;
 use App\Checks\SpfCheck;
 use App\Checks\TlsMxCheck;
@@ -32,8 +36,12 @@ class CheckRegistry
         TlsRptCheck::class,
         BimiCheck::class,
         DnssecCheck::class,
+        NsCheck::class,
+        CaaCheck::class,
         TlsWebCheck::class,
+        HttpCheck::class,
         TlsMxCheck::class,
+        DaneCheck::class,
         DomainExpiryCheck::class,
         BlacklistCheck::class,
     ];

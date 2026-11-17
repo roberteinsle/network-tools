@@ -14,6 +14,12 @@ class FakeDnsResolver extends DnsResolver
 
     public int $queries = 0;
 
+    /** AD-Flag (DNSSEC validiert) für alle Antworten. */
+    public bool $authenticated = false;
+
+    /** AA-Flag (autoritative Antwort) für alle Antworten. */
+    public bool $authoritative = false;
+
     public function __construct(array $records = [])
     {
         parent::__construct([]);
@@ -35,6 +41,6 @@ class FakeDnsResolver extends DnsResolver
         $this->queries++;
         $lines = $this->zone[strtolower(rtrim($name, '.')).'|'.strtoupper($type)] ?? [];
 
-        return new DnsAnswer(array_map(fn ($l) => RR::fromString($l), $lines));
+        return new DnsAnswer(array_map(fn ($l) => RR::fromString($l), $lines), $this->authenticated, false, $this->authoritative);
     }
 }

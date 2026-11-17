@@ -42,6 +42,7 @@ class TlsInspector
     {
         return stream_context_create(['ssl' => [
             'capture_peer_cert' => true,
+            'capture_peer_cert_chain' => true,
             'verify_peer' => $verify,
             'verify_peer_name' => $verify,
             'allow_self_signed' => ! $verify,
@@ -153,12 +154,17 @@ class TlsInspector
             fingerprint: (string) openssl_x509_fingerprint($cert, 'sha256'),
             trusted: $verified,
             protocol: $meta['crypto']['protocol'] ?? null,
+            pem: openssl_x509_export($cert, $pem) ? $pem : null,
+            chain: array_values(array_filter(array_map(
+                fn ($c) => openssl_x509_export($c, $out) ? $out : null,
+                $params['options']['ssl']['peer_certificate_chain'] ?? [],
+            ))),
         );
     }
 
     private function withError(CertificateInfo $info, string $error): CertificateInfo
     {
-        return new CertificateInfo($info->subject, $info->issuer, $info->names, $info->validFrom, $info->validTo, $info->fingerprint, false, $error, $info->protocol);
+        return new CertificateInfo($info->subject, $info->issuer, $info->names, $info->validFrom, $info->validTo, $info->fingerprint, false, $error, $info->protocol, $info->pem, $info->chain);
     }
 
     private function cleanError(string $error): string

@@ -25,7 +25,8 @@ In Coolify, run them in the terminal of the `app` container.
 
 ## Network notes
 
-- The STARTTLS check of MX hosts needs **outgoing port 25**.
+- The STARTTLS check of MX hosts and the DANE certificate comparison need **outgoing port 25**.
+- The name server check queries each authoritative server directly over UDP/TCP port 53.
 - Many RBLs block public resolvers. Run your own resolver (e.g. Unbound) and enter it under *Settings → DNS → Resolvers for blacklists*.
 - The resolvers for the other checks must validate DNSSEC.
 

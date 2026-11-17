@@ -8,7 +8,7 @@ network-tools (the app is called **Domain-Monitor**) ships as a ready-made Docke
 - A domain or subdomain for the backend, with HTTPS (Coolify handles the certificate).
 - PostgreSQL (in Coolify: a separate database resource with backups enabled).
 - An SMTP mailbox for sending alerts. It is configured later in the backend, not via environment variables.
-- **Outgoing port 25** if you want the optional STARTTLS check of MX hosts. Many cloud providers block it by default.
+- **Outgoing port 25** if you want the optional STARTTLS check of MX hosts and the DANE certificate comparison. Many cloud providers block it by default.
 - Ideally your own recursive resolver (e.g. Unbound) for the blacklist check, because many RBLs refuse queries from public resolvers.
 
 ## Deploying with Coolify

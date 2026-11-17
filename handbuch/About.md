@@ -12,6 +12,7 @@
 
 - Each check is a class in `app/Checks` that implements the common `Check` interface and returns a `CheckOutcome` (status, messages, details, fingerprint).
 - All checks are registered in `App\Services\CheckRegistry`. A new check is added there and in the `CheckType` enum; nothing else calls a check directly.
+- Results several checks need (e.g. the STARTTLS certificate for the MX and DANE checks) are shared through `CheckContext::cached()` within one run.
 - `DomainChecker` runs the registered checks for a domain, `ChangeDetector` compares the run with the previous one, and `AlertNotifier` sends the mail.
 
 ## Documentation

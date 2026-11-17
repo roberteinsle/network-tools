@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>network-tools – self-hosted domain monitor for DNS, email and TLS</title>
-  <meta name="description" content="network-tools is a free, open-source, self-hosted domain monitor. It checks MX, SPF (10-lookup limit), DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates, domain expiry and blacklists on a schedule and emails you when something breaks or changes.">
+  <meta name="description" content="network-tools is a free, open-source, self-hosted domain monitor. It checks MX, SPF (10-lookup limit), DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers, CAA, TLS certificates, HTTPS/HSTS, DANE, domain expiry and blacklists on a schedule and emails you when something breaks or changes.">
   <meta name="theme-color" content="#111827">
   <meta property="og:title" content="network-tools – self-hosted domain monitor">
   <meta property="og:description" content="Scheduled DNS, email and TLS checks with a full history. Alerts only on real changes. Open source, runs on your own server.">
@@ -27,7 +27,7 @@
         "@type": "SoftwareApplication",
         "name": "network-tools",
         "alternateName": "Domain-Monitor",
-        "description": "Free, open-source, self-hosted domain monitor that checks MX, A/AAAA, PTR, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates, domain expiry and DNS blacklists on a schedule, keeps a history and sends email alerts on changes.",
+        "description": "Free, open-source, self-hosted domain monitor that checks MX, A/AAAA, PTR, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers (NS/SOA), CAA, TLS certificates, HTTP to HTTPS redirects and HSTS, DANE/TLSA, domain expiry and DNS blacklists on a schedule, keeps a history and sends email alerts on changes.",
         "applicationCategory": "DeveloperApplication",
         "applicationSubCategory": "Domain and email security monitoring",
         "operatingSystem": "Linux, Docker",
@@ -36,7 +36,7 @@
         "codeRepository": "https://github.com/roberteinsle/network-tools",
         "programmingLanguage": "PHP",
         "softwareRequirements": "Docker, PostgreSQL",
-        "featureList": ["MX check", "SPF 10-DNS-lookup counter", "DKIM selectors per provider", "DMARC policy and report authorization", "MTA-STS policy check", "TLS-RPT", "BIMI", "DNSSEC validation", "TLS certificate expiry (HTTPS and SMTP STARTTLS)", "Domain expiry via RDAP", "DNS blacklist (RBL) check with Spamhaus DQS", "Email alerts on changes", "Passkey login"],
+        "featureList": ["MX check", "SPF 10-DNS-lookup counter", "DKIM selectors per provider", "DMARC policy and report authorization", "MTA-STS policy check", "TLS-RPT", "BIMI", "DNSSEC validation", "Name server and SOA check (lame delegation, serial)", "CAA record check", "HTTP to HTTPS redirect and HSTS check", "DANE/TLSA check for MX hosts", "TLS certificate expiry (HTTPS and SMTP STARTTLS)", "Domain expiry via RDAP", "DNS blacklist (RBL) check with Spamhaus DQS", "Email alerts on changes", "Passkey login"],
         "inLanguage": "en",
         "isAccessibleForFree": true,
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
@@ -45,7 +45,7 @@
       {
         "@type": "FAQPage",
         "mainEntity": [
-          { "@type": "Question", "name": "What does network-tools check?", "acceptedAnswer": { "@type": "Answer", "text": "MX, A/AAAA, PTR with forward-confirmed reverse DNS, SPF including the 10-DNS-lookup limit and void lookups, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates for HTTPS and SMTP STARTTLS, domain expiry via RDAP, and DNS blacklists." } },
+          { "@type": "Question", "name": "What does network-tools check?", "acceptedAnswer": { "@type": "Answer", "text": "MX, A/AAAA, PTR with forward-confirmed reverse DNS, SPF including the 10-DNS-lookup limit and void lookups, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers and SOA, CAA, TLS certificates for HTTPS and SMTP STARTTLS, HTTP to HTTPS redirects and HSTS, DANE/TLSA for MX hosts, domain expiry via RDAP, and DNS blacklists." } },
           { "@type": "Question", "name": "When does network-tools send an email?", "acceptedAnswer": { "@type": "Answer", "text": "When a check gets worse, a problem is fixed, or the configuration changes, for example a new SPF record or another certificate. Timeouts and resolver problems never trigger an alert." } },
           { "@type": "Question", "name": "Does network-tools query Spamhaus?", "acceptedAnswer": { "@type": "Answer", "text": "Only through the Spamhaus Data Query Service (DQS) with your own key. The public Spamhaus zones are never queried." } },
           { "@type": "Question", "name": "How is network-tools installed?", "acceptedAnswer": { "@type": "Answer", "text": "As a Docker image from GitHub Container Registry with a PostgreSQL database, typically deployed with Coolify using the included Docker Compose file." } },
@@ -88,7 +88,7 @@
             <a class="button secondary" href="https://github.com/roberteinsle/network-tools">Source on GitHub</a>
           </div>
           <ul class="facts">
-            <li><strong>14</strong> checks</li>
+            <li><strong>18</strong> checks</li>
             <li><strong>5 min</strong> scheduler</li>
             <li><strong>0</strong> passwords</li>
           </ul>
@@ -142,7 +142,7 @@
 
     <section class="section tinted" id="checks">
       <div class="wrap">
-        <h2>14 checks per domain</h2>
+        <h2>18 checks per domain</h2>
         <p class="section-lead">Each check returns OK, info, warning, error or “not checkable”. Individual checks can be switched off per domain.</p>
         <dl class="checks">
           <div><dt>MX</dt><dd>Records, null MX (RFC 7505), A/AAAA of the MX hosts, MX pointing to an IP or a CNAME.</dd></div>
@@ -155,8 +155,12 @@
           <div><dt>TLS-RPT</dt><dd>Record and report targets; a warning if MTA-STS is active without TLS reporting.</dd></div>
           <div><dt>BIMI</dt><dd>Record, SVG Tiny PS logo and size, DMARC enforcement requirement, VMC/CMC certificate.</dd></div>
           <div><dt>DNSSEC</dt><dd>DS at the registrar, DNSKEY in the zone, validation via the AD flag, SERVFAIL on bogus signatures, deprecated algorithms.</dd></div>
+          <div><dt>Name servers (NS / SOA)</dt><dd>Every name server queried directly: lame delegation, same SOA serial everywhere, NS list matches the delegation, network spread, sane SOA timers.</dd></div>
+          <div><dt>CAA</dt><dd>Which certificate authorities may issue, inherited records, wildcard rules, invalid <code>iodef</code> and unknown critical tags.</dd></div>
           <div><dt>TLS certificate (HTTPS)</dt><dd>Trust, host name and expiry for the domain, <code>www.</code> and <code>mta-sts.</code>; outdated TLS versions.</dd></div>
           <div><dt>TLS certificate (SMTP)</dt><dd>Optional STARTTLS on port 25 of every MX host: availability, trust, host name, expiry.</dd></div>
+          <div><dt>HTTP → HTTPS / HSTS</dt><dd>HTTP redirects to HTTPS, <code>Strict-Transport-Security</code> with <code>max-age</code>, <code>includeSubDomains</code> and preload readiness.</dd></div>
+          <div><dt>DANE (TLSA)</dt><dd>TLSA records of the MX hosts, DNSSEC validation, recommended usages and a match against the live STARTTLS certificate.</dd></div>
           <div><dt>Domain expiry</dt><dd>Registration expiry and status via RDAP (IANA bootstrap), transfer lock.</dd></div>
           <div><dt>Blacklists</dt><dd>MX and outgoing IPs and the domain against free RBLs such as SpamCop, PSBL, Mailspike, UCEPROTECT, SURBL and URIBL; Spamhaus ZEN and DBL only via DQS with your own key.</dd></div>
         </dl>
@@ -205,7 +209,7 @@
       <div class="wrap">
         <h2>Frequently asked questions</h2>
         <div class="faq">
-          <details><summary>What does network-tools check?</summary><p>MX, A/AAAA, PTR with forward-confirmed reverse DNS, SPF including the 10-DNS-lookup limit and void lookups, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates for HTTPS and SMTP STARTTLS, domain expiry via RDAP, and DNS blacklists.</p></details>
+          <details><summary>What does network-tools check?</summary><p>MX, A/AAAA, PTR with forward-confirmed reverse DNS, SPF including the 10-DNS-lookup limit and void lookups, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers and SOA, CAA, TLS certificates for HTTPS and SMTP STARTTLS, HTTP to HTTPS redirects and HSTS, DANE/TLSA for MX hosts, domain expiry via RDAP, and DNS blacklists.</p></details>
           <details><summary>When does it send an email?</summary><p>When a check gets worse, a problem is fixed, or the configuration changes, for example a new SPF record or another certificate. Timeouts and resolver problems never trigger an alert.</p></details>
           <details><summary>Does it query Spamhaus?</summary><p>Only through the Spamhaus Data Query Service (DQS) with your own key. The public Spamhaus zones are never queried and cannot be added.</p></details>
           <details><summary>Why are some blacklists “not checkable”?</summary><p>Many RBLs refuse queries from public resolvers such as 8.8.8.8. Run your own resolver (for example Unbound) and enter it in the settings.</p></details>
