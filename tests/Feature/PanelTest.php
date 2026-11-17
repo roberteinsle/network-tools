@@ -79,6 +79,27 @@ class PanelTest extends TestCase
     }
 
     #[Test]
+    public function results_are_sorted_by_severity_and_problems_are_expanded(): void
+    {
+        foreach ([['mx', 'ok', 'MX in Ordnung'], ['dmarc', 'error', 'Kein DMARC-Record'], ['caa', 'info', 'Kein CAA-Record']] as [$check, $status, $summary]) {
+            CheckResult::create([
+                'check_run_id' => $this->run->id, 'domain_id' => $this->domain->id, 'check' => $check, 'status' => $status,
+                'summary' => $summary, 'fingerprint' => 'x', 'state' => [],
+                'details' => ['messages' => [['status' => 'ok', 'text' => "Detail {$check} gut"], ['status' => $status, 'text' => "Detail {$check}"]], 'data' => []],
+            ]);
+        }
+
+        $html = $this->get("/admin/domains/{$this->domain->id}")
+            ->assertSeeInOrder(['Kein DMARC-Record', 'Fast am DNS-Lookup-Limit', 'Kein CAA-Record', 'MX in Ordnung'])
+            ->assertSeeInOrder(['Detail dmarc', 'Detail dmarc gut'])
+            ->getContent();
+
+        // Nur die Details des OK-Ergebnisses (MX, zuletzt) sind eingeklappt
+        $this->assertSame(1, substr_count($html, 'isCollapsed: true'));
+        $this->assertGreaterThan(strpos($html, 'MX in Ordnung'), strpos($html, 'isCollapsed: true'));
+    }
+
+    #[Test]
     public function creating_a_domain_normalizes_name_and_starts_check(): void
     {
         Queue::fake();

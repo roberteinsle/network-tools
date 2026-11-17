@@ -37,7 +37,7 @@ Customers group domains, which is useful for agencies and IT service providers.
 
 The domain list shows status, number of problems, customer and the time of the last check, with filters for status, customer and active. **Check now** runs a check immediately, for one domain or as a bulk action.
 
-The domain page shows the current result of every check with all details, and the history of its check runs.
+The domain page shows the current result of every check and the history of its check runs. Results are sorted by severity: errors first, then warnings, not checkable, info and OK; within the same severity they keep the check order. The details of every check that is not OK are expanded, and their messages are sorted the same way. OK results stay collapsed. Check runs and the DNS check show results the same way.
 
 ## DNS check (Werkzeuge → DNS-Check)
 
