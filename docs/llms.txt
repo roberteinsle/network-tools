@@ -1,0 +1,39 @@
+# network-tools
+
+> network-tools (app name: Domain-Monitor) is a free, open-source, self-hosted domain monitor. It checks DNS, email authentication and TLS for many domains on a schedule, stores a history of every check run, and sends email alerts only when something gets worse, is fixed, or changes. It runs as a Docker image with PostgreSQL, typically deployed with Coolify. Login uses passkeys or one-time magic links; there are no passwords. The backend UI is in German; the documentation is in English.
+
+## Checks
+
+- MX: records, null MX (RFC 7505), A/AAAA of MX hosts, MX pointing to an IP address or CNAME
+- A / AAAA: domain and www (or custom web hosts), missing IPv6, private or reserved addresses
+- PTR: reverse DNS of MX and outgoing mail server IPs, forward-confirmed reverse DNS (FCrDNS)
+- SPF: duplicate records, +all / ?all, recursive counter for the 10 DNS lookup limit including redirect, void lookup limit of 2
+- DKIM: known selectors per provider (Microsoft 365, Google Workspace, Mailchimp, SendGrid, Mailjet, Brevo, HubSpot, Zoho, Mailgun, IONOS) plus custom selectors; error below 1024-bit RSA, warning below 2048-bit
+- DMARC: p, sp, pct, rua, authorization record for external report receivers
+- MTA-STS: TXT record, HTTPS policy, mode, max_age, every MX host covered by the policy
+- TLS-RPT: record and report targets; warning if MTA-STS is active without TLS-RPT
+- BIMI: record, SVG Tiny PS logo up to 32 KB, DMARC enforcement requirement, VMC/CMC
+- DNSSEC: DS at the parent, DNSKEY, validation via the AD flag, SERVFAIL detection, deprecated algorithms
+- TLS certificate (HTTPS): trust, host name, expiry for domain, www and mta-sts; outdated TLS versions
+- TLS certificate (SMTP STARTTLS, optional, needs outgoing port 25): availability, trust, host name, expiry
+- Domain expiry: RDAP via IANA bootstrap; registries without RDAP expiry (e.g. DENIC for .de) are reported as info
+- Blacklists: free RBLs (SpamCop, PSBL, Mailspike, UCEPROTECT Level 1, SURBL, URIBL; Barracuda optional); Spamhaus ZEN and DBL only via Spamhaus DQS with your own key
+
+## Alerts
+
+- Mail on: worse status, fixed problem (optional), other status change, configuration change with the same status (different records)
+- Never on: timeouts or resolver problems ("not checkable")
+- IP changes of A/AAAA and PTR are only logged unless enabled per domain
+- Recipients: global + per customer + per domain
+- Default thresholds: certificate warning 21 days, error 7 days; domain warning 30 days, error 7 days
+- Intervals per domain: hourly, 3, 6, 12 hours or daily; scheduler runs every 5 minutes; logs kept 180 days by default
+
+## Docs
+
+- [README](https://github.com/roberteinsle/network-tools#readme): overview and quick start
+- [Wiki](https://github.com/roberteinsle/network-tools/wiki): full documentation
+- [Installation](https://github.com/roberteinsle/network-tools/wiki/Installation)
+- [Configuration](https://github.com/roberteinsle/network-tools/wiki/Configuration)
+- [Checks](https://github.com/roberteinsle/network-tools/wiki/Checks)
+- [Notifications](https://github.com/roberteinsle/network-tools/wiki/Notifications)
+- [Source code](https://github.com/roberteinsle/network-tools)

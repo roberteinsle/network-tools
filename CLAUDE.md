@@ -45,3 +45,27 @@ php artisan boost:install
 
 Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
 </laravel-boost-guidelines>
+
+# Project: network-tools (Domain-Monitor)
+
+Self-hosted domain monitor: Laravel 13 + Filament 5 on PHP 8.5, PostgreSQL in production, SQLite for tests. The backend UI is German; all public documents (README, handbuch/, wiki, website, CLAUDE.md) are English.
+
+## Architecture
+
+- Each check is a class in `app/Checks` implementing `App\Checks\Check` (`type()`, `run(CheckContext): CheckOutcome`).
+- Checks are registered only in `App\Services\CheckRegistry` (plus a case in `App\Enums\CheckType`). `DomainChecker` runs whatever the registry returns; `ChangeDetector` compares runs; `AlertNotifier` sends mails. New features plug in through the registries, never through direct calls between checks or services.
+- `scheduler` runs `domains:check-due` every 5 minutes, `worker` runs `CheckDomainJob` (timeout 300 s, `DB_QUEUE_RETRY_AFTER` must be larger), `model:prune` runs nightly.
+- Settings live in the single-row `app_settings` table (`AppSetting::current()`); secrets are encrypted with `APP_KEY`.
+
+## Rules
+
+- No personal data of the maintainer in the repository (code, docs, handbuch/, wiki, commits, issues).
+- Spamhaus only via DQS with the user's key; public Spamhaus zones are never queried.
+- "Not checkable" (`CheckStatus::Unknown`) must never trigger an alert.
+
+## Documentation
+
+- `handbuch/<Page>.md`: full details, one file per wiki page; the source of the wiki. Link other pages as `Page.md#anchor`, repository files as `../path`.
+- `README.md`: short overview; only update for a new check/module or a changed quick start.
+- `docs/`: website at https://network-tools.einsle.app (GitHub Pages via `.github/workflows/pages.yml`), English, overview of all features, keep SEO/GEO metadata (`index.html` JSON-LD, `llms.txt`, `sitemap.xml`) in sync. `docs/og.png` (1200×630) is the social preview.
+- Wiki: never edit by hand. Regenerate with `python3 scripts/build-wiki.py <dir>`, copy the output into a clone of `network-tools.wiki.git` and push.

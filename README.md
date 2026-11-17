@@ -1,69 +1,74 @@
-# Domain-Monitor
+<div align="center">
+<img src="docs/logo.svg" width="120" alt="network-tools"/>
 
-Überwacht eigene Domains automatisch, protokolliert jede Prüfung und meldet Probleme und Änderungen per E-Mail.
-Laravel 13 + Filament 5 auf PHP 8.5. Gebaut und ausgerollt nach dem Standard GitHub → GHCR → Coolify.
+# network-tools
+### The self-hosted domain monitor for DNS, mail and TLS
 
-## Prüfungen
+[![Website](https://img.shields.io/badge/Website-network--tools.einsle.app-f59e0b)](https://network-tools.einsle.app)
+[![Wiki](https://img.shields.io/badge/Docs-Wiki-111827)](https://github.com/roberteinsle/network-tools/wiki)
+[![Build](https://img.shields.io/github/actions/workflow/status/roberteinsle/network-tools/build.yml?branch=main&label=Build)](https://github.com/roberteinsle/network-tools/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/roberteinsle/network-tools?label=Version)](https://github.com/roberteinsle/network-tools/releases)
 
-| Prüfung | Was geprüft wird |
-| --- | --- |
-| MX | Records, Null-MX, A/AAAA der MX-Hosts, CNAME-/IP-Fehler |
-| A / AAAA | Domain und `www.` (oder eigene Web-Hosts), private Adressen |
-| PTR | Reverse DNS der MX-IPs und gepflegten ausgehenden IPs inkl. FCrDNS |
-| SPF | Syntax, mehrere Records, `all`-Qualifier, **Zähler für das 10-Lookup-Limit** (rekursiv inkl. redirect) und Void-Lookups |
-| DKIM | Bekannte Selektoren je Anbieter (M365, Google, Mailchimp, SendGrid …) am Kunden oder an der Domain, eigene Selektoren, Schlüssellänge |
-| DMARC | Richtlinie, pct, sp, rua inkl. Autorisierung externer Report-Empfänger |
-| MTA-STS | TXT, Policy per HTTPS, Modus, Abgleich mit den MX-Hosts |
-| TLS-RPT | Record und Report-Ziele |
-| BIMI | Record, SVG-Logo (Tiny PS), DMARC-Voraussetzung, VMC |
-| DNSSEC | DS beim Registrar, DNSKEY, Validierung über das AD-Flag |
-| TLS-Zertifikat | HTTPS (Domain, www, mta-sts) und optional MX-STARTTLS (Port 25): Vertrauen, Hostname, Ablauf |
-| Domain-Ablauf | RDAP (IANA-Bootstrap). Registries ohne RDAP-Ablaufdatum (z. B. DENIC/.de) werden als Hinweis gemeldet |
-| Blacklists | Kleine Auswahl kostenloser RBLs (im Backend pflegbar). **Spamhaus nur über DQS** mit eigenem Schlüssel; die öffentlichen Spamhaus-Zonen lassen sich gar nicht erst eintragen |
+</div>
 
-## Benachrichtigungen
+---
 
-- Eine E-Mail geht raus, wenn sich der Status einer Prüfung ändert (schlechter oder behoben) oder sich die Konfiguration ändert (z. B. neuer SPF-Record oder ein anderes Zertifikat).
-- Die erste Prüfung einer Domain meldet nur vorhandene Probleme.
-- **Nicht prüfbar** (Timeout, Resolver-Problem) löst nie eine Mail aus, damit Netzprobleme keine Fehlalarme erzeugen.
-- IP-Wechsel bei A/AAAA und PTR (CDN, M365) werden nur protokolliert. Pro Domain lässt sich das umschalten.
-- Empfänger sind die globalen Adressen aus den Einstellungen plus Adressen je Kunde und je Domain.
-- SMTP-Zugang, Empfänger, Schwellwerte, Resolver und der Spamhaus-DQS-Schlüssel werden im Backend gepflegt. Passwort und Schlüssel liegen mit `APP_KEY` verschlüsselt in der Datenbank.
+network-tools (the app is called **Domain-Monitor**) watches your domains around the clock: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates, domain expiry and blacklists. It keeps a history of every check and emails you when something breaks or changes, such as a new SPF record, an expiring certificate or a blacklist listing. It runs on your own server, logs in with passkeys and has no passwords.
 
-## Betrieb
+## Installation & quick start
 
-- `scheduler` führt alle 5 Minuten `domains:check-due` aus. Fällige Domains (Intervall je Domain) landen in der Queue.
-- `worker` führt die Prüfungen aus (`CheckDomainJob`, Timeout 300 s). `DB_QUEUE_RETRY_AFTER` muss größer als 300 sein.
-- `model:prune` löscht nachts Protokolle, die älter als die eingestellte Aufbewahrung sind. Der letzte Lauf jeder Domain bleibt erhalten.
-- `php artisan domains:check [domain]` prüft sofort und gibt das Ergebnis als Tabelle aus.
+network-tools ships as a ready-made Docker image (`ghcr.io/roberteinsle/network-tools`) with a PostgreSQL database. A small server, a domain for the backend and an SMTP mailbox for alerts are all you need.
 
-## Anmeldung
+1. In **Coolify**, create a **PostgreSQL** database and enable backups.
+2. Create a *Docker Compose (Empty)* resource with [`deploy/docker-compose.coolify.yml`](deploy/docker-compose.coolify.yml) and set `APP_KEY`, `APP_URL` and the `DB_*` variables ([Configuration](https://github.com/roberteinsle/network-tools/wiki/Configuration)).
+3. Add your domain with port `8080` to the `app` service and deploy.
+4. In the container terminal, run `php artisan app:user you@example.com`. It prints a login link right away.
+5. Register a passkey, enter your SMTP server under *Settings* and add your domains.
 
-Anmeldung per Passkey (laravel/passkeys) oder als Ausweichweg per Magic Link (15 Minuten gültig, einmalig nutzbar). Passwörter gibt es nicht.
-Den ersten Benutzer legst du per Konsole an. Der Befehl gibt direkt einen Anmeldelink aus, auch ohne SMTP:
+The **[installation guide in the wiki](https://github.com/roberteinsle/network-tools/wiki/Installation)** covers every step, updates and local development.
 
-```bash
-php artisan app:user du@example.com --name="Dein Name"
-```
+## How it works
 
-Danach unter *Einstellungen → Passkeys* einen Passkey einrichten und unter *Einstellungen* den SMTP-Server hinterlegen.
+A scheduler queues due domains every five minutes, and a worker runs all enabled checks. Each run is stored with its full results and compared with the previous one.
 
-## Entwicklung
+- **Alerts on real changes only:** a mail goes out when a check gets worse, is fixed or its records change. Timeouts and resolver hiccups never trigger an alert.
+- **Built for many domains:** group domains by customer, inherit DKIM providers, and send alerts to global, customer and domain recipients.
+- **Everything in the backend:** SMTP, recipients, thresholds, intervals, resolvers and the Spamhaus DQS key are configured in the UI. Secrets are stored encrypted.
 
-```bash
-docker compose up -d --build
-docker compose exec app php artisan app:user du@example.com
-php artisan test
-```
+## Checks
 
-## Deployment (Coolify)
+| Check | What it covers |
+|---|---|
+| [MX](https://github.com/roberteinsle/network-tools/wiki/Checks#mx) | Records, null MX, A/AAAA of MX hosts, CNAME and IP mistakes |
+| [A / AAAA](https://github.com/roberteinsle/network-tools/wiki/Checks#a--aaaa) | Domain and `www.` (or your own web hosts), private addresses |
+| [PTR](https://github.com/roberteinsle/network-tools/wiki/Checks#ptr-reverse-dns) | Reverse DNS of MX and outgoing IPs, including FCrDNS |
+| [SPF](https://github.com/roberteinsle/network-tools/wiki/Checks#spf) | Syntax, duplicates, `all` qualifier, recursive **10-lookup counter** and void lookups |
+| [DKIM](https://github.com/roberteinsle/network-tools/wiki/Checks#dkim) | Known selectors per provider (Microsoft 365, Google, Mailchimp, SendGrid …), custom selectors, key length |
+| [DMARC](https://github.com/roberteinsle/network-tools/wiki/Checks#dmarc) | Policy, `pct`, `sp`, `rua` including authorization of external report receivers |
+| [MTA-STS](https://github.com/roberteinsle/network-tools/wiki/Checks#mta-sts) | TXT record, policy over HTTPS, mode, match with the MX hosts |
+| [TLS-RPT](https://github.com/roberteinsle/network-tools/wiki/Checks#tls-rpt) | Record and report targets |
+| [BIMI](https://github.com/roberteinsle/network-tools/wiki/Checks#bimi) | Record, SVG Tiny PS logo, DMARC requirement, VMC |
+| [DNSSEC](https://github.com/roberteinsle/network-tools/wiki/Checks#dnssec) | DS at the registrar, DNSKEY, validation via the AD flag |
+| [TLS certificates](https://github.com/roberteinsle/network-tools/wiki/Checks#tls-certificate-https) | HTTPS (domain, www, mta-sts) and optional MX STARTTLS on port 25: trust, host name, expiry |
+| [Domain expiry](https://github.com/roberteinsle/network-tools/wiki/Checks#domain-expiry) | RDAP via IANA bootstrap |
+| [Blacklists](https://github.com/roberteinsle/network-tools/wiki/Checks#blacklists) | A small set of free RBLs; **Spamhaus only via DQS** with your own key |
 
-1. Push auf `main` → GitHub Action baut `ghcr.io/roberteinsle/network-tools:latest`.
-2. In Coolify eine PostgreSQL-Datenbank als eigene Ressource anlegen (Backups dort aktivieren).
-3. *Docker Compose (Empty)* anlegen und `deploy/docker-compose.coolify.yml` einfügen.
-4. Variablen setzen: `APP_KEY` (`php artisan key:generate --show`), `APP_URL`, `DB_HOST` (interner Hostname der Datenbank-Ressource), `DB_PORT` (Standard 5432), `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`.
-5. Am Service `app` die Domain mit Port `8080` eintragen und deployen. Danach `php artisan app:user …` im Container-Terminal ausführen.
+Everything else – every field, setting and alert rule – is in the **[wiki](https://github.com/roberteinsle/network-tools/wiki)**.
 
-Hinweise:
-- Für die MX-STARTTLS-Prüfung muss ausgehender Port 25 erlaubt sein.
-- Viele RBLs sperren öffentliche Resolver. Am besten einen eigenen Resolver (z. B. Unbound) unter *Einstellungen → Resolver für Blacklists* eintragen.
+## Privacy & security
+
+network-tools runs on your server and only contacts the resolvers, registries, blacklists and hosts the checks need. There is no telemetry. The SMTP password and the DQS key are encrypted with `APP_KEY`. Login works with passkeys or a one-time magic link; there are no passwords.
+
+Please report vulnerabilities privately via [GitHub security advisories](https://github.com/roberteinsle/network-tools/security/advisories/new).
+
+## Contributing
+
+Ideas, feature requests and bug reports are welcome as [issues](https://github.com/roberteinsle/network-tools/issues).
+
+**For developers:** PHP 8.5, Laravel 13, Filament 5, PostgreSQL, tests with PHPUnit. The repository opens ready to use in the dev container or GitHub Codespaces; `php artisan test` runs the tests. Architecture notes are in [CLAUDE.md](CLAUDE.md), and the full documentation is in the [handbook](handbuch/), from which the wiki is generated.
+
+## Links
+
+- **Website:** [network-tools.einsle.app](https://network-tools.einsle.app)
+- **Wiki:** [Documentation and installation guide](https://github.com/roberteinsle/network-tools/wiki)
+- **Versions:** [Releases](https://github.com/roberteinsle/network-tools/releases)

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>network-tools – self-hosted domain monitor for DNS, email and TLS</title>
+  <meta name="description" content="network-tools is a free, open-source, self-hosted domain monitor. It checks MX, SPF (10-lookup limit), DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates, domain expiry and blacklists on a schedule and emails you when something breaks or changes.">
+  <meta name="theme-color" content="#111827">
+  <meta property="og:title" content="network-tools – self-hosted domain monitor">
+  <meta property="og:description" content="Scheduled DNS, email and TLS checks with a full history. Alerts only on real changes. Open source, runs on your own server.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://network-tools.einsle.app/">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:site_name" content="network-tools">
+  <meta property="og:image" content="https://network-tools.einsle.app/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="network-tools – watches your domains and emails you when something breaks, with an example check result for example.com">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://network-tools.einsle.app/">
+  <link rel="alternate" type="text/plain" href="https://network-tools.einsle.app/llms.txt" title="LLM summary">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "network-tools",
+        "alternateName": "Domain-Monitor",
+        "description": "Free, open-source, self-hosted domain monitor that checks MX, A/AAAA, PTR, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates, domain expiry and DNS blacklists on a schedule, keeps a history and sends email alerts on changes.",
+        "applicationCategory": "DeveloperApplication",
+        "applicationSubCategory": "Domain and email security monitoring",
+        "operatingSystem": "Linux, Docker",
+        "url": "https://network-tools.einsle.app/",
+        "image": "https://network-tools.einsle.app/og.png",
+        "codeRepository": "https://github.com/roberteinsle/network-tools",
+        "programmingLanguage": "PHP",
+        "softwareRequirements": "Docker, PostgreSQL",
+        "featureList": ["MX check", "SPF 10-DNS-lookup counter", "DKIM selectors per provider", "DMARC policy and report authorization", "MTA-STS policy check", "TLS-RPT", "BIMI", "DNSSEC validation", "TLS certificate expiry (HTTPS and SMTP STARTTLS)", "Domain expiry via RDAP", "DNS blacklist (RBL) check with Spamhaus DQS", "Email alerts on changes", "Passkey login"],
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "sameAs": ["https://github.com/roberteinsle/network-tools"]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "What does network-tools check?", "acceptedAnswer": { "@type": "Answer", "text": "MX, A/AAAA, PTR with forward-confirmed reverse DNS, SPF including the 10-DNS-lookup limit and void lookups, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates for HTTPS and SMTP STARTTLS, domain expiry via RDAP, and DNS blacklists." } },
+          { "@type": "Question", "name": "When does network-tools send an email?", "acceptedAnswer": { "@type": "Answer", "text": "When a check gets worse, a problem is fixed, or the configuration changes, for example a new SPF record or another certificate. Timeouts and resolver problems never trigger an alert." } },
+          { "@type": "Question", "name": "Does network-tools query Spamhaus?", "acceptedAnswer": { "@type": "Answer", "text": "Only through the Spamhaus Data Query Service (DQS) with your own key. The public Spamhaus zones are never queried." } },
+          { "@type": "Question", "name": "How is network-tools installed?", "acceptedAnswer": { "@type": "Answer", "text": "As a Docker image from GitHub Container Registry with a PostgreSQL database, typically deployed with Coolify using the included Docker Compose file." } },
+          { "@type": "Question", "name": "Is network-tools free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The source code is on GitHub and it runs on your own server without license costs or telemetry." } }
+        ]
+      }
+    ]
+  }
+  </script>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#main" aria-label="network-tools – back to top">
+        <img src="logo.svg" alt="" width="28" height="28">
+        <span>network-tools</span>
+      </a>
+      <nav class="nav" aria-label="Site navigation">
+        <a href="#checks">Checks</a>
+        <a href="#alerts">Alerts</a>
+        <a href="#install">Install</a>
+        <a href="#faq">FAQ</a>
+        <a class="nav-github" href="https://github.com/roberteinsle/network-tools">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="wrap hero-inner">
+        <div class="hero-text">
+          <p class="eyebrow">Open source · self-hosted · no telemetry</p>
+          <h1>Watches your domains. <em>Emails you when something breaks.</em></h1>
+          <p class="lead">network-tools is a self-hosted domain monitor. It checks DNS, email authentication and TLS for all your domains on a schedule, keeps a history of every run, and sends an email only when something really changes.</p>
+          <div class="actions">
+            <a class="button primary" href="#install">Install</a>
+            <a class="button secondary" href="https://github.com/roberteinsle/network-tools">Source on GitHub</a>
+          </div>
+          <ul class="facts">
+            <li><strong>14</strong> checks</li>
+            <li><strong>5 min</strong> scheduler</li>
+            <li><strong>0</strong> passwords</li>
+          </ul>
+        </div>
+        <div class="mock" aria-hidden="true">
+          <div class="mock-head"><div><p class="mock-domain">example.com</p><p class="mock-sub">Last check 3 min ago · every 60 min</p></div><span class="mock-badge">1 warning</span></div>
+          <p class="mock-row"><span class="ok"></span><b>MX</b><i>2 hosts · FCrDNS ok</i></p>
+          <p class="mock-row"><span class="warn"></span><b>SPF</b><i>9 / 10 DNS lookups</i></p>
+          <p class="mock-row"><span class="ok"></span><b>DKIM</b><i>selector1 · 2048 bit</i></p>
+          <p class="mock-row"><span class="ok"></span><b>DMARC</b><i>p=reject · rua ok</i></p>
+          <p class="mock-row"><span class="ok"></span><b>MTA-STS</b><i>mode=enforce</i></p>
+          <p class="mock-row"><span class="ok"></span><b>DNSSEC</b><i>validated (AD)</i></p>
+          <p class="mock-row"><span class="ok"></span><b>TLS</b><i>expires in 62 days</i></p>
+          <p class="mock-row"><span class="ok"></span><b>Blacklists</b><i>0 / 8 listed</i></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="why">
+      <div class="wrap">
+        <h2>Made for people who run domains</h2>
+        <p class="section-lead">Email deliverability and HTTPS break quietly: an SPF record crosses the 10-lookup limit, a DKIM key disappears after a provider change, a certificate is not renewed, a domain expires. network-tools notices before your users do.</p>
+        <div class="features">
+          <article class="feature">
+            <h3>Alerts on real changes</h3>
+            <p>A mail goes out when a check gets worse, a problem is fixed, or records change – not on every run. Timeouts and resolver hiccups never cause false alarms.</p>
+          </article>
+          <article class="feature">
+            <h3>Full history</h3>
+            <p>Every check run is stored with all details, so you can see what a record looked like last week and when it changed. Old runs are pruned automatically.</p>
+          </article>
+          <article class="feature">
+            <h3>Built for many domains</h3>
+            <p>Group domains by customer, inherit DKIM providers, set intervals per domain and send alerts to global, customer and domain recipients. Ideal for agencies and IT service providers.</p>
+          </article>
+          <article class="feature">
+            <h3>Configured in the browser</h3>
+            <p>SMTP, recipients, thresholds, resolvers and the Spamhaus DQS key live in the backend. Secrets are encrypted in the database.</p>
+          </article>
+          <article class="feature">
+            <h3>Passkeys, no passwords</h3>
+            <p>Log in with a passkey, or with a one-time magic link that is valid for 15 minutes. There are no passwords to leak.</p>
+          </article>
+          <article class="feature">
+            <h3>Your server, your data</h3>
+            <p>Runs as a Docker image on your own server. It only contacts the resolvers, registries, blacklists and hosts the checks need.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section tinted" id="checks">
+      <div class="wrap">
+        <h2>14 checks per domain</h2>
+        <p class="section-lead">Each check returns OK, info, warning, error or “not checkable”. Individual checks can be switched off per domain.</p>
+        <dl class="checks">
+          <div><dt>MX</dt><dd>Records, null MX (RFC 7505), A/AAAA of the MX hosts, MX pointing to an IP or a CNAME.</dd></div>
+          <div><dt>A / AAAA</dt><dd>Domain and <code>www.</code> or your own web hosts, missing IPv6, private or reserved addresses.</dd></div>
+          <div><dt>PTR / reverse DNS</dt><dd>PTR records of MX and outgoing mail server IPs, forward-confirmed reverse DNS (FCrDNS).</dd></div>
+          <div><dt>SPF</dt><dd>Duplicate records, <code>+all</code> and <code>?all</code>, a recursive counter for the 10-DNS-lookup limit including <code>redirect</code>, void lookups.</dd></div>
+          <div><dt>DKIM</dt><dd>Known selectors for Microsoft 365, Google Workspace, Mailchimp, SendGrid, Mailjet, Brevo, HubSpot, Zoho, Mailgun and IONOS, plus custom selectors; RSA key length.</dd></div>
+          <div><dt>DMARC</dt><dd>Policy, <code>sp</code>, <code>pct</code>, aggregate reports and the authorization record for external report receivers.</dd></div>
+          <div><dt>MTA-STS</dt><dd>TXT record, policy fetched over HTTPS, mode, <code>max_age</code> and whether every MX host is covered.</dd></div>
+          <div><dt>TLS-RPT</dt><dd>Record and report targets; a warning if MTA-STS is active without TLS reporting.</dd></div>
+          <div><dt>BIMI</dt><dd>Record, SVG Tiny PS logo and size, DMARC enforcement requirement, VMC/CMC certificate.</dd></div>
+          <div><dt>DNSSEC</dt><dd>DS at the registrar, DNSKEY in the zone, validation via the AD flag, SERVFAIL on bogus signatures, deprecated algorithms.</dd></div>
+          <div><dt>TLS certificate (HTTPS)</dt><dd>Trust, host name and expiry for the domain, <code>www.</code> and <code>mta-sts.</code>; outdated TLS versions.</dd></div>
+          <div><dt>TLS certificate (SMTP)</dt><dd>Optional STARTTLS on port 25 of every MX host: availability, trust, host name, expiry.</dd></div>
+          <div><dt>Domain expiry</dt><dd>Registration expiry and status via RDAP (IANA bootstrap), transfer lock.</dd></div>
+          <div><dt>Blacklists</dt><dd>MX and outgoing IPs and the domain against free RBLs such as SpamCop, PSBL, Mailspike, UCEPROTECT, SURBL and URIBL; Spamhaus ZEN and DBL only via DQS with your own key.</dd></div>
+        </dl>
+        <p class="more">Every rule in detail: <a href="https://github.com/roberteinsle/network-tools/wiki/Checks">Checks in the wiki</a>.</p>
+      </div>
+    </section>
+
+    <section class="section" id="alerts">
+      <div class="wrap two-col">
+        <div>
+          <h2>Alerts you can trust</h2>
+          <p class="section-lead">After every run, each check is compared with the previous run of the same domain.</p>
+          <ul class="list">
+            <li><strong>Worse</strong> – e.g. OK → warning, or a new blacklist listing.</li>
+            <li><strong>Fixed</strong> – a warning or error is gone (can be turned off).</li>
+            <li><strong>Configuration changed</strong> – same status, different records: a new SPF include, another certificate, a changed DMARC policy.</li>
+            <li><strong>Never</strong> for timeouts or resolver problems, and only logged for IP changes of CDNs and Microsoft 365 unless you opt in.</li>
+          </ul>
+          <p class="more">Details: <a href="https://github.com/roberteinsle/network-tools/wiki/Notifications">Notifications in the wiki</a>.</p>
+        </div>
+        <div class="mail" aria-hidden="true">
+          <p class="mail-subject">✉ SPF record changed – example.com</p>
+          <p class="mail-line"><b>Configuration changed</b> · SPF</p>
+          <p class="mail-line">Before: 8 / 10 DNS lookups, ~all</p>
+          <p class="mail-line">Now: include:_spf.mail.example added · 9 / 10 DNS lookups</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section tinted" id="install">
+      <div class="wrap">
+        <h2>Install in five steps</h2>
+        <p class="section-lead">network-tools ships as a Docker image (<code>ghcr.io/roberteinsle/network-tools</code>) with a PostgreSQL database. The included Compose file is made for Coolify but runs on any Docker host.</p>
+        <ol class="steps">
+          <li><strong>Database.</strong> Create a PostgreSQL database in Coolify and enable backups.</li>
+          <li><strong>App.</strong> Create a <em>Docker Compose (Empty)</em> resource with <code>deploy/docker-compose.coolify.yml</code> and set <code>APP_KEY</code>, <code>APP_URL</code> and the <code>DB_*</code> variables.</li>
+          <li><strong>Domain.</strong> Add your domain with port 8080 to the <code>app</code> service and deploy. Web app, queue worker and scheduler start from the same image.</li>
+          <li><strong>First login.</strong> Run <code>php artisan app:user you@example.com</code> in the container. It prints a login link, so no SMTP is needed yet.</li>
+          <li><strong>Set up.</strong> Register a passkey, enter your SMTP server and alert recipients, then add your domains.</li>
+        </ol>
+        <p class="more">Step by step, including updates and local development: <a href="https://github.com/roberteinsle/network-tools/wiki/Installation">Installation guide</a> · <a href="https://github.com/roberteinsle/network-tools/wiki/Configuration">Configuration</a></p>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="wrap">
+        <h2>Frequently asked questions</h2>
+        <div class="faq">
+          <details><summary>What does network-tools check?</summary><p>MX, A/AAAA, PTR with forward-confirmed reverse DNS, SPF including the 10-DNS-lookup limit and void lookups, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, TLS certificates for HTTPS and SMTP STARTTLS, domain expiry via RDAP, and DNS blacklists.</p></details>
+          <details><summary>When does it send an email?</summary><p>When a check gets worse, a problem is fixed, or the configuration changes, for example a new SPF record or another certificate. Timeouts and resolver problems never trigger an alert.</p></details>
+          <details><summary>Does it query Spamhaus?</summary><p>Only through the Spamhaus Data Query Service (DQS) with your own key. The public Spamhaus zones are never queried and cannot be added.</p></details>
+          <details><summary>Why are some blacklists “not checkable”?</summary><p>Many RBLs refuse queries from public resolvers such as 8.8.8.8. Run your own resolver (for example Unbound) and enter it in the settings.</p></details>
+          <details><summary>How often are domains checked?</summary><p>Per domain: hourly, every 3, 6 or 12 hours, or daily. A scheduler queues due domains every five minutes, and you can start a check at any time.</p></details>
+          <details><summary>Is it free?</summary><p>Yes. The source code is on GitHub, and it runs on your own server without license costs or telemetry. The backend interface is currently in German.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p><strong>network-tools</strong> – self-hosted domain monitor for DNS, email and TLS.</p>
+      <nav aria-label="Footer">
+        <a href="https://github.com/roberteinsle/network-tools">GitHub</a>
+        <a href="https://github.com/roberteinsle/network-tools/wiki">Wiki</a>
+        <a href="https://github.com/roberteinsle/network-tools/releases">Releases</a>
+        <a href="https://github.com/roberteinsle/network-tools/issues">Issues</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
