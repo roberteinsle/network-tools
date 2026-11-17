@@ -21,6 +21,7 @@ enum DkimProvider: string implements HasDescription, HasLabel
     case Zoho = 'zoho';
     case Mailgun = 'mailgun';
     case Ionos = 'ionos';
+    case Mailcow = 'mailcow';
     case Generic = 'generic';
 
     /** @return list<string> */
@@ -37,6 +38,7 @@ enum DkimProvider: string implements HasDescription, HasLabel
             self::Zoho => ['zmail', 'zoho'],
             self::Mailgun => ['mx', 'smtp', 'mailo'],
             self::Ionos => ['s1-ionos', 's2-ionos'],
+            self::Mailcow => ['dkim'],
             self::Generic => ['default', 'dkim', 'mail'],
         };
     }
@@ -54,6 +56,7 @@ enum DkimProvider: string implements HasDescription, HasLabel
             self::Zoho => 'Zoho Mail',
             self::Mailgun => 'Mailgun',
             self::Ionos => 'IONOS',
+            self::Mailcow => 'Mailcow',
             self::Generic => 'Allgemein (default, dkim, mail)',
         };
     }

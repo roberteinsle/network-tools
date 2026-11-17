@@ -44,7 +44,7 @@ A scheduler queues due domains every five minutes, and a worker runs all enabled
 | [A / AAAA](https://github.com/roberteinsle/network-tools/wiki/Checks#a--aaaa) | Domain and `www.` (or your own web hosts), private addresses |
 | [PTR](https://github.com/roberteinsle/network-tools/wiki/Checks#ptr-reverse-dns) | Reverse DNS of MX and outgoing IPs, including FCrDNS |
 | [SPF](https://github.com/roberteinsle/network-tools/wiki/Checks#spf) | Syntax, duplicates, `all` qualifier, recursive **10-lookup counter** and void lookups |
-| [DKIM](https://github.com/roberteinsle/network-tools/wiki/Checks#dkim) | Known selectors per provider (Microsoft 365, Google, Mailchimp, SendGrid …), custom selectors, key length |
+| [DKIM](https://github.com/roberteinsle/network-tools/wiki/Checks#dkim) | Known selectors per provider (Microsoft 365, Google, Mailchimp, SendGrid, Mailcow …), custom selectors, AWS SES rotation tokens, key length |
 | [DMARC](https://github.com/roberteinsle/network-tools/wiki/Checks#dmarc) | Policy, `pct`, `sp`, `rua` including authorization of external report receivers |
 | [MTA-STS](https://github.com/roberteinsle/network-tools/wiki/Checks#mta-sts) | TXT record, policy over HTTPS, mode, match with the MX hosts |
 | [TLS-RPT](https://github.com/roberteinsle/network-tools/wiki/Checks#tls-rpt) | Record and report targets |

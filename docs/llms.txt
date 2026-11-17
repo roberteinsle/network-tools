@@ -8,7 +8,7 @@
 - A / AAAA: domain and www (or custom web hosts), missing IPv6, private or reserved addresses
 - PTR: reverse DNS of MX and outgoing mail server IPs, forward-confirmed reverse DNS (FCrDNS)
 - SPF: duplicate records, +all / ?all, recursive counter for the 10 DNS lookup limit including redirect, void lookup limit of 2
-- DKIM: known selectors per provider (Microsoft 365, Google Workspace, Mailchimp, SendGrid, Mailjet, Brevo, HubSpot, Zoho, Mailgun, IONOS) plus custom selectors; error below 1024-bit RSA, warning below 2048-bit
+- DKIM: known selectors per provider (Microsoft 365, Google Workspace, Mailchimp, SendGrid, Mailjet, Brevo, HubSpot, Zoho, Mailgun, IONOS, Mailcow) plus custom selectors; AWS SES Easy DKIM tokens (CNAME to *.dkim.amazonses.com) rated as a group: one active key is OK, reserve tokens with empty p= are info; error below 1024-bit RSA, warning below 2048-bit
 - DMARC: p, sp, pct, rua, authorization record for external report receivers
 - MTA-STS: TXT record, HTTPS policy, mode, max_age, every MX host covered by the policy
 - TLS-RPT: record and report targets; warning if MTA-STS is active without TLS-RPT

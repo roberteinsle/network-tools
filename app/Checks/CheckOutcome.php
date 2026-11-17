@@ -24,6 +24,8 @@ final class CheckOutcome
 
     private ?CheckStatus $forcedStatus = null;
 
+    private bool $infoIsNeutral = false;
+
     public static function make(): self
     {
         return new self;
@@ -89,13 +91,31 @@ final class CheckOutcome
         return $this;
     }
 
+    /**
+     * Hinweise bestimmen den Gesamtstatus nicht, sobald es mindestens einen OK-Befund gibt:
+     * maßgeblich sind dann nur Warnungen, Fehler und „nicht prüfbar“.
+     */
+    public function infoIsNeutral(bool $neutral = true): self
+    {
+        $this->infoIsNeutral = $neutral;
+
+        return $this;
+    }
+
     public function status(): CheckStatus
     {
         if ($this->forcedStatus) {
             return $this->forcedStatus;
         }
 
-        return CheckStatus::worst(array_map(fn ($m) => CheckStatus::from($m['status']), $this->messages));
+        $statuses = array_map(fn ($m) => CheckStatus::from($m['status']), $this->messages);
+        $worst = CheckStatus::worst($statuses);
+
+        if ($this->infoIsNeutral && $worst === CheckStatus::Info && in_array(CheckStatus::Ok, $statuses, true)) {
+            return CheckStatus::Ok;
+        }
+
+        return $worst;
     }
 
     public function getSummary(): string

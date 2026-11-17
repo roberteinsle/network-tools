@@ -20,7 +20,8 @@ class DkimCheck implements Check
 
     public function run(CheckContext $ctx): CheckOutcome
     {
-        $out = CheckOutcome::make();
+        // Hinweise (z. B. Rotations-Reserve) sollen ein sonst gültiges DKIM nicht auf „Hinweis“ ziehen
+        $out = CheckOutcome::make()->infoIsNeutral();
         $groups = [];
 
         foreach ($ctx->domain->effectiveDkimProviders() as $provider) {
@@ -37,16 +38,26 @@ class DkimCheck implements Check
 
         $state = [];
         $validCount = 0;
+        $ses = [];
 
         foreach ($groups as $label => $selectors) {
             $validInGroup = 0;
             $found = [];
+            $checked = 0;
 
             foreach ($selectors as $selector) {
                 $result = $this->inspect($ctx, $selector);
                 $state[$selector] = $result['state'];
                 $out->data("{$selector}._domainkey", $result['display']);
 
+                // AWS SES Easy DKIM: gemeinsam bewerten (aktive Tokens + Rotations-Reserve), nicht pro Gruppe
+                if ($result['ses']) {
+                    $ses[$selector] = $result;
+
+                    continue;
+                }
+
+                $checked++;
                 if ($result['valid']) {
                     $validInGroup++;
                     $found[] = $selector;
@@ -58,22 +69,76 @@ class DkimCheck implements Check
 
             $validCount += $validInGroup;
 
-            if ($validInGroup === 0) {
-                $out->error("{$label}: kein gültiger DKIM-Schlüssel gefunden (".implode(', ', $selectors).').');
-            } elseif ($label === DkimProvider::Microsoft365->getLabel() && $validInGroup < 2) {
+            if ($checked > 0 && $validInGroup === 0) {
+                $out->error("{$label}: kein gültiger DKIM-Schlüssel gefunden (".implode(', ', array_diff($selectors, array_keys($ses))).').');
+            } elseif ($label === DkimProvider::Microsoft365->getLabel() && $validInGroup === 1) {
                 $out->info("{$label}: nur ".implode(', ', $found).' aktiv – für die Schlüsselrotation sollten selector1 und selector2 existieren.');
             }
         }
 
+        $sesActive = $ses === [] ? [] : $this->evaluateSes($out, $ses);
+        $validCount += count($sesActive);
+
         if (! $out->status()->isProblem()) {
-            $out->summary("{$validCount} gültige(r) DKIM-Schlüssel");
+            $out->summary("{$validCount} gültige(r) DKIM-Schlüssel".($ses !== [] ? ', davon '.count($sesActive).' AWS SES' : ''));
         }
 
         return $out->state($state);
     }
 
-    /** @return array{exists:bool, valid:bool, status:CheckStatus, text:string, display:string, state:mixed} */
+    /**
+     * AWS SES Easy DKIM legt pro Identity drei CNAMEs auf <token>.dkim.amazonses.com an; nur einer
+     * trägt jeweils den aktiven Schlüssel, die anderen liefern absichtlich p= als Reserve für die
+     * automatische Rotation. Bewertet wird deshalb die Gruppe: mindestens ein gültiger Schlüssel = OK.
+     *
+     * @param  array<string, array>  $ses  Selektor => Ergebnis von inspect()
+     * @return list<string> Selektoren mit gültigem Schlüssel
+     */
+    private function evaluateSes(CheckOutcome $out, array $ses): array
+    {
+        $active = [];
+        $reserve = [];
+        foreach ($ses as $selector => $result) {
+            if ($result['valid']) {
+                $active[] = $selector;
+                $out->add($result['status'], "{$selector}: {$result['text']} (AWS SES)");
+            } else {
+                $reserve[] = $selector;
+            }
+        }
+
+        $short = fn (array $list) => implode(', ', array_map(fn ($s) => mb_strimwidth($s, 0, 8, '…'), $list));
+
+        if ($active === []) {
+            $out->warning('AWS SES: kein Token mit gültigem Schlüssel ('.$short($reserve).') – SES signiert so nicht mit DKIM.');
+
+            return [];
+        }
+
+        $out->ok('AWS SES: '.count($active).' aktive(r) Schlüssel ('.$short($active).').');
+        foreach ($reserve as $selector) {
+            $out->info("{$selector}: Rotations-Reserve (AWS SES).");
+        }
+
+        return $active;
+    }
+
+    /** @return array{exists:bool, valid:bool, status:CheckStatus, text:string, display:string, state:mixed, ses:bool} */
     private function inspect(CheckContext $ctx, string $selector): array
+    {
+        $result = $this->lookup($ctx, $selector);
+        $cname = is_array($result['state']) ? ($result['state']['cname'] ?? null) : null;
+
+        return [...$result, 'ses' => self::isSes($cname)];
+    }
+
+    /** CNAME auf *.dkim.amazonses.com (jede Region) = Token von AWS SES Easy DKIM. */
+    private static function isSes(?string $cname): bool
+    {
+        return $cname !== null && str_ends_with($cname, '.dkim.amazonses.com');
+    }
+
+    private function lookup(CheckContext $ctx, string $selector): array
     {
         $name = "{$selector}._domainkey.{$ctx->name()}";
         $none = ['exists' => false, 'valid' => false, 'status' => CheckStatus::Info, 'text' => 'nicht vorhanden', 'display' => 'nicht vorhanden', 'state' => null];

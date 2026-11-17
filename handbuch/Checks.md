@@ -56,10 +56,17 @@ The status of a domain is the worst status of its checks. Checks can be switched
 | Zoho Mail | `zmail`, `zoho` |
 | Mailgun | `mx`, `smtp`, `mailo` |
 | IONOS | `s1-ionos`, `s2-ionos` |
+| Mailcow | `dkim` |
 | Generic | `default`, `dkim`, `mail` |
 
 - Providers with random selectors (Amazon SES, Postmark, your own mail server) are covered by **custom selectors** on the domain.
-- Error if no valid key is found for a provider. Key length: error below 1024 bit RSA, warning below 2048 bit.
+- **AWS SES Easy DKIM** is recognized automatically: a selector whose CNAME points to `*.dkim.amazonses.com` (any region) is an SES token. SES creates three tokens per identity, but only one carries the active key; the others deliberately publish an empty `p=` as a reserve for automatic key rotation. SES tokens are therefore rated together, independent of the group they are listed in:
+  - at least one token with a valid key: OK, and every reserve token is shown as info *Rotation reserve (AWS SES)*,
+  - no token with a valid key: warning.
+  - The key length rules apply to the active tokens as usual (e.g. a warning for an identity with RSA 1024 bit).
+- An empty `p=` on any other selector (a normal TXT record, no SES CNAME) is still a warning *key revoked*.
+- Info messages do not lower the status of an otherwise valid DKIM setup: as soon as there is a valid key, only warnings and errors count.
+- Error if no valid key is found for a provider or for the custom selectors (SES tokens excluded, see below). Key length: error below 1024 bit RSA, warning below 2048 bit.
 - Info for Microsoft 365 if only one of the two rotation selectors is active.
 - Info if no provider and no selector is configured.
 
