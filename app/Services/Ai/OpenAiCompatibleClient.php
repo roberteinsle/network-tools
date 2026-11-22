@@ -20,7 +20,7 @@ class OpenAiCompatibleClient implements AiClient
             $request = $request->withToken((string) $model->api_key);
         }
         if ($model->provider === AiProvider::OpenRouter) {
-            $request = $request->withHeaders(['X-Title' => 'Domain-Monitor']);
+            $request = $request->withHeaders(['X-Title' => 'Network-Tools']);
         }
 
         try {

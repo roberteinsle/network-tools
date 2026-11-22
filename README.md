@@ -13,7 +13,7 @@
 
 ---
 
-network-tools (the app is called **Domain-Monitor**) watches your domains around the clock: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers, CAA, TLS certificates, HTTPS/HSTS, DANE, domain expiry and blacklists. It keeps a history of every check and emails you when something breaks or changes, such as a new SPF record, an expiring certificate or a blacklist listing. It runs on your own server, logs in with passkeys and has no passwords.
+network-tools (the backend is called **Network-Tools**) watches your domains around the clock: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers, CAA, TLS certificates, HTTPS/HSTS, DANE, domain expiry and blacklists. It keeps a history of every check and emails you when something breaks or changes, such as a new SPF record, an expiring certificate or a blacklist listing. It runs on your own server, logs in with passkeys and has no passwords.
 
 ## Installation & quick start
 
@@ -32,9 +32,9 @@ The **[installation guide in the wiki](https://github.com/roberteinsle/network-t
 A scheduler queues due domains every five minutes, and a worker runs all enabled checks. Each run is stored with its full results and compared with the previous one.
 
 - **Alerts on real changes only:** a mail goes out when a check gets worse, is fixed or its records change. Timeouts and resolver hiccups never trigger an alert.
-- **Built for many domains:** group domains by customer, inherit DKIM providers, and send alerts to global, customer and domain recipients.
+- **Built for many domains:** group domains by customer, inherit DKIM providers, and send alerts to global, customer and domain recipients, with a mail level per customer (all changes, from warning, errors only, none).
 - **AI copilot:** recommendations for every error, warning and hint from Claude, ChatGPT, Gemini, OpenRouter or a self-hosted model – or export the current state for any AI chat.
-- **DNS check on demand:** check any domain from the menu without adding it – same rules, nothing stored, no mail.
+- **DNS lookup:** see which IPs a host name resolves to at its authoritative name servers and at the ten most widely used public resolvers.
 - **Everything in the backend:** SMTP, recipients, thresholds, intervals, resolvers and the Spamhaus DQS key are configured in the UI. Secrets are stored encrypted.
 
 ## Checks

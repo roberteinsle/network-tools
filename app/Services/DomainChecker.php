@@ -99,7 +99,7 @@ class DomainChecker
 
     /**
      * Führt die registrierten Prüfungen aus, ohne etwas zu speichern oder zu melden
-     * (auch für nicht gespeicherte Domains, z. B. den DNS-Check im Menü).
+     * (auch für nicht gespeicherte Domains).
      *
      * @param  list<CheckType>|null  $only  nur diese Prüfungen (null = alle an der Domain aktiven)
      * @return array<string, CheckOutcome>

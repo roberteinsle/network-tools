@@ -46,7 +46,7 @@ php artisan boost:install
 Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
 </laravel-boost-guidelines>
 
-# Project: network-tools (Domain-Monitor)
+# Project: network-tools (backend name: Network-Tools)
 
 Self-hosted domain monitor: Laravel 13 + Filament 5 on PHP 8.5, PostgreSQL in production, SQLite for tests. The backend UI is German; all public documents (README, handbuch/, wiki, website, CLAUDE.md) are English.
 
@@ -54,10 +54,12 @@ Self-hosted domain monitor: Laravel 13 + Filament 5 on PHP 8.5, PostgreSQL in pr
 
 - Each check is a class in `app/Checks` implementing `App\Checks\Check` (`type()`, `run(CheckContext): CheckOutcome`).
 - Checks are registered only in `App\Services\CheckRegistry` (plus a case in `App\Enums\CheckType`). `DomainChecker` runs whatever the registry returns; `ChangeDetector` compares runs; `AlertNotifier` sends mails. New features plug in through the registries, never through direct calls between checks or services.
-- `DomainChecker::evaluate(Domain, ?types)` runs the registry without persisting; `run()` adds storage, change detection and alerts. Tools like the DNS check page (`App\Filament\Pages\DnsCheck`, group *Werkzeuge*) use `evaluate()` on an unsaved `Domain`.
+- `DomainChecker::evaluate(Domain, ?types)` runs the registry without persisting; `run()` adds storage, change detection and alerts. The DNS lookup page (`App\Filament\Pages\DnsLookup`, group *Werkzeuge*) does not run checks: `App\Services\Lookup\DnsLookup` asks the authoritative name servers and the public resolvers registered in `App\Enums\PublicResolver`, all through `NameserverProbe`.
 - Results several checks need (e.g. the STARTTLS certificate for `TlsMxCheck` and `DaneCheck`) go through `CheckContext::cached()`; the registry order decides who fetches first. Direct queries to authoritative name servers go through `App\Support\Dns\NameserverProbe` so tests can fake them.
 - AI copilot: providers are registered only in `App\Services\Ai\AiProviderRegistry` (provider in `App\Enums\AiProvider` + client implementing `AiClient`); Anthropic goes through the official `anthropic-ai/sdk`. `App\Services\Copilot\CopilotPrompt` builds prompt and export from result arrays, `Copilot` caches answers, `App\Livewire\Copilot` is embedded via `ResultSchema::copilot()` / `copilotActions()`. Render model output only through `Str::markdown` with `html_input => escape`.
 - `scheduler` runs `domains:check-due` every 5 minutes, `worker` runs `CheckDomainJob` (timeout 300 s, `DB_QUEUE_RETRY_AFTER` must be larger), `model:prune` runs nightly.
+- Alert recipients are resolved in `Domain::recipientsFor()`: global and domain addresses always, customer addresses only if the customer's `App\Enums\NotifyLevel` covers the changes.
+- Build info (release, commit, commit date) comes from the build args `APP_VERSION`, `APP_COMMIT`, `APP_COMMIT_DATE` (set in `.github/workflows/build.yml`) and is shown next to the title via `App\Support\BuildInfo`.
 - Settings live in the single-row `app_settings` table (`AppSetting::current()`); secrets are encrypted with `APP_KEY`.
 
 ## Rules

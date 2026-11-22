@@ -1,6 +1,6 @@
 # Installation
 
-network-tools (the app is called **Domain-Monitor**) ships as a ready-made Docker image, `ghcr.io/roberteinsle/network-tools`, and needs a PostgreSQL database. The recommended way to run it is [Coolify](https://coolify.io), but any Docker host works.
+network-tools (the backend is called **Network-Tools**) ships as a ready-made Docker image, `ghcr.io/roberteinsle/network-tools`, and needs a PostgreSQL database. The recommended way to run it is [Coolify](https://coolify.io), but any Docker host works.
 
 ## Requirements
 
@@ -43,7 +43,7 @@ Then, in the backend:
 1. **Settings → Passkeys:** register a passkey for future logins.
 2. **Settings → Email delivery:** enter the SMTP server and the sender address, then use **Send test mail**.
 3. **Settings → Email delivery → Notifications:** add the global alert recipients.
-4. **Customers:** optionally create customers and pick their DKIM providers.
+4. **Customers:** optionally create customers, pick their DKIM providers and set from which status their addresses get mails.
 5. **Domains:** add your domains. The first check runs within five minutes, or immediately via **Check now**.
 
 ## Updates

@@ -1,5 +1,5 @@
 {
-    "name": "Domain-Monitor (PHP 8.5)",
+    "name": "Network-Tools (PHP 8.5)",
     "image": "mcr.microsoft.com/devcontainers/php:8.5",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2": {},

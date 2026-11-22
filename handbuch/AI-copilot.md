@@ -26,7 +26,7 @@ The copilot is optional. Nothing is sent to an AI provider unless you click one 
 
 ## Using the copilot
 
-The copilot is available wherever results are shown: on the domain page (*Aktueller Stand*), on a check run, and in the DNS check.
+The copilot is available wherever results are shown: on the domain page (*Aktueller Stand*) and on a check run.
 
 - **KI-Empfehlung** inside the details of every result that is not OK asks for recommendations on that one check. The other results are sent as a short overview so the model knows the context.
 - **KI-Copilot** in the header of the results asks about all errors, warnings and info messages at once.

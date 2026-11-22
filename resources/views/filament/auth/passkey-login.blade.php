@@ -1,6 +1,6 @@
 <div
     x-data="{ busy: false, error: null, supported: true }"
-    x-init="supported = window.DomainMonitorPasskeys?.supported() ?? false"
+    x-init="supported = window.NetworkToolsPasskeys?.supported() ?? false"
     style="display: grid; gap: 0.75rem"
 >
     <template x-if="supported">
@@ -9,7 +9,7 @@
                 size="lg"
                 icon="heroicon-o-finger-print"
                 x-bind:disabled="busy"
-                x-on:click="busy = true; error = await window.DomainMonitorPasskeys.login(); busy = false"
+                x-on:click="busy = true; error = await window.NetworkToolsPasskeys.login(); busy = false"
                 style="width: 100%"
             >
                 Mit Passkey anmelden

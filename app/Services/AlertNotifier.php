@@ -14,7 +14,7 @@ class AlertNotifier
 
     public function send(Domain $domain, CheckRun $run, array $changes, bool $initial): bool
     {
-        $recipients = $domain->recipients();
+        $recipients = $domain->recipientsFor($changes, $run, $initial);
         if ($recipients === []) {
             Log::info("Keine Empfänger für {$domain->name} – Benachrichtigung übersprungen.");
 

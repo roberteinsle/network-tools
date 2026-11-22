@@ -3,7 +3,7 @@
 # Die Datenbank ist eine eigenständige PostgreSQL-Ressource in Coolify. DB_HOST = interner
 # Hostname dieser Ressource (in Coolify bei der Datenbank unter „Internal URL“ ablesbar).
 x-app-env: &app-env
-  APP_NAME: Domain-Monitor
+  APP_NAME: Network-Tools
   APP_ENV: production
   APP_DEBUG: "false"
   APP_KEY: ${APP_KEY}

@@ -10,7 +10,7 @@ class CreateDomain extends CreateRecord
 {
     protected static string $resource = DomainResource::class;
 
-    /** Aus dem DNS-Check übernommen: ?name=beispiel.de vorbelegen. */
+    /** Per Link vorbelegbar: ?name=beispiel.de */
     protected function afterFill(): void
     {
         if (filled($name = request()->query('name'))) {

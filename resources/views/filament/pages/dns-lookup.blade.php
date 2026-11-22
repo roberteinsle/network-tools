@@ -1,16 +1,16 @@
 <x-filament-panels::page>
-    <form wire:submit="check">
+    <form wire:submit="lookup">
         {{ $this->form }}
 
-        <div style="margin-top: 1.5rem">
+        <div style="margin-top: 1rem">
             <x-filament::button type="submit" icon="heroicon-o-magnifying-glass">
-                <span wire:loading.remove wire:target="check">Prüfen</span>
-                <span wire:loading wire:target="check">Prüfe …</span>
+                <span wire:loading.remove wire:target="lookup">Nachschlagen</span>
+                <span wire:loading wire:target="lookup">Frage ab …</span>
             </x-filament::button>
         </div>
     </form>
 
-    @if ($checkedName)
+    @if ($host)
         {{ $this->resultInfolist }}
     @endif
 </x-filament-panels::page>

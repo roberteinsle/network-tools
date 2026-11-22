@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CheckStatus;
 use App\Enums\CheckType;
 use App\Enums\DkimProvider;
+use App\Enums\NotifyLevel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -112,11 +113,22 @@ class Domain extends Model
     }
 
     /** @return list<string> */
-    public function recipients(): array
+    /**
+     * Empfänger einer Alarm-Mail: globale Adressen und Adressen der Domain immer,
+     * Adressen des Kunden nur, wenn dessen Benachrichtigungsstufe die Meldung umfasst.
+     *
+     * @param  list<array>  $changes
+     * @return list<string>
+     */
+    public function recipientsFor(array $changes, CheckRun $run, bool $initial): array
     {
+        $customer = $this->customer;
+        $customerWants = $customer !== null
+            && ($customer->notify_level ?? NotifyLevel::All)->wants($changes, $run->results, $initial);
+
         $emails = array_merge(
             AppSetting::current()->notification_emails ?? [],
-            $this->customer?->notification_emails ?? [],
+            $customerWants ? ($customer->notification_emails ?? []) : [],
             $this->notification_emails ?? [],
         );
 

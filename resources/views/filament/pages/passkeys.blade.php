@@ -23,7 +23,7 @@
                 x-bind:disabled="busy"
                 x-on:click="
                     busy = true; error = null;
-                    error = await window.DomainMonitorPasskeys.register(name.trim());
+                    error = await window.NetworkToolsPasskeys.register(name.trim());
                     busy = false;
                     if (error === null) { name = ''; $wire.$refresh(); new FilamentNotification().title('Passkey gespeichert').success().send(); }
                 "

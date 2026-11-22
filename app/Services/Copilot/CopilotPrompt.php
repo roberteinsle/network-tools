@@ -17,7 +17,7 @@ class CopilotPrompt
     public static function system(): string
     {
         return <<<'TXT'
-        Du bist ein erfahrener Administrator für DNS, E-Mail-Zustellung (SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DANE) und TLS-Zertifikate. Du bekommst die Prüfergebnisse eines Domain-Monitors für eine Domain.
+        Du bist ein erfahrener Administrator für DNS, E-Mail-Zustellung (SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DANE) und TLS-Zertifikate. Du bekommst die Prüfergebnisse der Domain-Überwachung von Network-Tools für eine Domain.
 
         Für jeden Befund mit dem Status Fehler, Warnung oder Hinweis:
         - Erkläre kurz Ursache und Auswirkung.

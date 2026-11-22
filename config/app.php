@@ -16,6 +16,14 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+    | Build-Informationen (setzt die GitHub Action als Build-Argumente ins Image;
+    | lokal liest App\Support\BuildInfo sie aus dem Git-Repository).
+    */
+    'version' => env('APP_VERSION'),
+    'commit' => env('APP_COMMIT'),
+    'commit_date' => env('APP_COMMIT_DATE'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

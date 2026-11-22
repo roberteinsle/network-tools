@@ -32,3 +32,11 @@ USER www-data
 WORKDIR /var/www/html
 COPY --chown=www-data:www-data --from=vendor /app /var/www/html
 COPY --chown=www-data:www-data --from=assets /app/public/build /var/www/html/public/build
+
+# Build-Informationen für die Anzeige neben dem Titel (zuletzt, damit der Layer-Cache greift)
+ARG APP_VERSION=""
+ARG APP_COMMIT=""
+ARG APP_COMMIT_DATE=""
+ENV APP_VERSION=${APP_VERSION} \
+    APP_COMMIT=${APP_COMMIT} \
+    APP_COMMIT_DATE=${APP_COMMIT_DATE}

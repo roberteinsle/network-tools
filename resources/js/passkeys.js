@@ -9,7 +9,7 @@ function message(error) {
     return error?.message || 'Unbekannter Fehler.';
 }
 
-window.DomainMonitorPasskeys = {
+window.NetworkToolsPasskeys = {
     supported: () => Passkeys.isSupported(),
 
     async login() {

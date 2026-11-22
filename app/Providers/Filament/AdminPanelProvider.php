@@ -30,7 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
-            ->brandName('Domain-Monitor')
+            ->brandName('Network-Tools')
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -48,6 +48,9 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([])
             // Passkey-Client (Vite-Bundle) auf allen Panel-Seiten inkl. Login laden
+            // Release, Commit und Commit-Datum klein neben dem Titel
+            ->renderHook(PanelsRenderHook::TOPBAR_LOGO_AFTER, fn (): string => view('filament.build-info')->render())
+            ->renderHook(PanelsRenderHook::SIDEBAR_LOGO_AFTER, fn (): string => view('filament.build-info')->render())
             ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => Blade::render("@vite('resources/js/passkeys.js')"))
             ->middleware([
                 EncryptCookies::class,

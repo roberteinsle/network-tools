@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Customers;
 
 use App\Enums\DkimProvider;
+use App\Enums\NotifyLevel;
 use App\Filament\Resources\Customers\Pages\CreateCustomer;
 use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
@@ -13,6 +14,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -50,9 +52,17 @@ class CustomerResource extends Resource
                     TextInput::make('contact_email')->label('Kontakt-E-Mail')->email()->maxLength(255),
                     TagsInput::make('notification_emails')
                         ->label('Benachrichtigungen an')
-                        ->helperText('Diese Adressen erhalten Meldungen zu allen Domains des Kunden (zusätzlich zu den globalen Empfängern).')
+                        ->helperText('Diese Adressen erhalten Meldungen zu allen Domains des Kunden (zusätzlich zu den globalen Empfängern). Ab welchem Status, legt das Feld darunter fest.')
                         ->placeholder('name@beispiel.de')
                         ->nestedRecursiveRules(['email:rfc', 'max:255'])
+                        ->columnSpanFull(),
+                    Select::make('notify_level')
+                        ->label('E-Mail an diese Adressen bei')
+                        ->options(NotifyLevel::class)
+                        ->default(NotifyLevel::All)
+                        ->required()
+                        ->helperText(fn ($state) => ($state instanceof NotifyLevel ? $state : NotifyLevel::tryFrom((string) $state))?->getDescription())
+                        ->live()
                         ->columnSpanFull(),
                 ]),
             Section::make('DKIM-Anbieter')
@@ -79,6 +89,8 @@ class CustomerResource extends Resource
             ->columns([
                 TextColumn::make('name')->label('Name')->searchable()->sortable()->weight('medium'),
                 TextColumn::make('domains_count')->label('Domains')->counts('domains')->sortable(),
+                TextColumn::make('notify_level')->label('E-Mail bei')->badge()->color('gray')
+                    ->description(fn (Customer $record) => $record->notification_emails ? count($record->notification_emails).' Empfänger' : 'keine Empfänger'),
                 TextColumn::make('dkim_providers')
                     ->label('DKIM-Anbieter')
                     ->formatStateUsing(fn ($state) => DkimProvider::tryFrom($state)?->getLabel() ?? $state)

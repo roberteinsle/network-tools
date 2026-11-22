@@ -60,7 +60,7 @@ class HttpCheck implements Check
             ->withoutVerifying() // Zertifikatsfehler meldet TlsWebCheck
             ->timeout(10)
             ->connectTimeout(5)
-            ->withUserAgent('Domain-Monitor (+https://network-tools.einsle.app)');
+            ->withUserAgent('Network-Tools (+https://network-tools.einsle.app)');
     }
 
     private function checkRedirect(CheckOutcome $out, string $host): string
