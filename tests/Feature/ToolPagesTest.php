@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Checks\Check;
 use App\Checks\CheckContext;
 use App\Checks\CheckOutcome;
+use App\Checks\SrvCheck;
 use App\Enums\CheckType;
 use App\Enums\DnsTool;
 use App\Enums\PublicResolver;
@@ -42,6 +43,8 @@ class ToolPagesTest extends TestCase
         'example.com. 300 IN CAA 0 issue "letsencrypt.org"',
         'www.example.com. 300 IN CNAME web.example.com.',
         'web.example.com. 300 IN A 203.0.113.10',
+        '_imaps._tcp.example.com. 3600 IN SRV 0 1 993 web.example.com.',
+        '_autodiscover._tcp.example.com. 3600 IN SRV 0 0 443 gone.example.com.',
         '10.113.0.203.in-addr.arpa. 300 IN PTR web.example.com.',
         'example.com. 3600 IN DS 20326 8 2 49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5',
         'web.example.com. 300 IN RRSIG A 13 3 300 20991231000000 20261101000000 4242 example.com. c2lnbmF0dXJl',
@@ -228,5 +231,40 @@ class ToolPagesTest extends TestCase
         Mail::assertNothingSent();
 
         Livewire::test(Tool::class, ['tool' => 'dkim'])->fillForm(['name' => 'example.com'])->call('lookup')->assertHasErrors(['data.dkim_selectors']);
+    }
+
+    #[Test]
+    public function srv_tool_runs_the_registered_check_with_suggestions(): void
+    {
+        // echter SrvCheck aus der Registry, nur mit Test-Zone statt echtem DNS
+        $this->app->instance(CheckRegistry::class, new class extends CheckRegistry
+        {
+            public function all(): array
+            {
+                return [new class implements Check
+                {
+                    public function type(): CheckType
+                    {
+                        return CheckType::Srv;
+                    }
+
+                    public function run(CheckContext $ctx): CheckOutcome
+                    {
+                        $dns = new FakeDnsResolver(ToolPagesTest::zone());
+
+                        return (new SrvCheck)->run(new CheckContext($ctx->domain, $dns, $dns, $ctx->settings));
+                    }
+                }];
+            }
+        });
+
+        $this->tool(DnsTool::Srv, ['name' => '_minecraft._tcp.example.com'])
+            ->assertSee('web.example.com:993')
+            ->assertSee('gone.example.com hat keine A/AAAA-Adresse')
+            ->assertSee('_minecraft._tcp.example.com fehlt')
+            ->assertSee('Vorschläge');
+
+        $this->assertDatabaseCount('domains', 0);
+        Mail::assertNothingSent();
     }
 }

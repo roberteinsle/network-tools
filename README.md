@@ -13,7 +13,7 @@
 
 ---
 
-network-tools (the backend is called **Network-Tools**) watches your domains around the clock: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers, CAA, TLS certificates, HTTPS/HSTS, DANE, domain expiry and blacklists. It keeps a history of every check and emails you when something breaks or changes, such as a new SPF record, an expiring certificate or a blacklist listing. It runs on your own server, logs in with passkeys and has no passwords.
+network-tools (the backend is called **Network-Tools**) watches your domains around the clock: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI, DNSSEC, name servers, CAA, SRV, TLS certificates, HTTPS/HSTS, DANE, domain expiry and blacklists. It keeps a history of every check and emails you when something breaks or changes, such as a new SPF record, an expiring certificate or a blacklist listing. It runs on your own server, logs in with passkeys and has no passwords.
 
 ## Installation & quick start
 
@@ -34,7 +34,7 @@ A scheduler queues due domains every five minutes, and a worker runs all enabled
 - **Alerts on real changes only:** a mail goes out when a check gets worse, is fixed or its records change. Timeouts and resolver hiccups never trigger an alert.
 - **Built for many domains:** group domains by customer, inherit DKIM providers, and send alerts to global, customer and domain recipients, with a mail level per customer (all changes, from warning, errors only, none).
 - **AI copilot:** recommendations for every error, warning and hint from Claude, ChatGPT, Gemini, OpenRouter or a self-hosted model – or export the current state for any AI chat.
-- **Tools on demand:** DNS records (MX, IP, name servers, SOA, CNAME, TXT, CAA), mail security (SPF, DMARC, DKIM, MTA-STS, TLS-RPT, DANE), reverse DNS and troubleshooting (trace from the root servers, RRSIG signatures, DS) for any name, without adding it.
+- **Tools on demand:** DNS records (MX, IP, name servers, SOA, CNAME, TXT, CAA, SRV), mail security (SPF, DMARC, DKIM, MTA-STS, TLS-RPT, DANE), reverse DNS and troubleshooting (trace from the root servers, RRSIG signatures, DS) for any name, without adding it.
 - **Everything in the backend:** SMTP, recipients, thresholds, intervals, resolvers and the Spamhaus DQS key are configured in the UI. Secrets are stored encrypted.
 
 ## Checks
@@ -53,6 +53,7 @@ A scheduler queues due domains every five minutes, and a worker runs all enabled
 | [DNSSEC](https://github.com/roberteinsle/network-tools/wiki/Checks#dnssec) | DS at the registrar, DNSKEY, validation via the AD flag |
 | [Name servers](https://github.com/roberteinsle/network-tools/wiki/Checks#nameservers-ns--soa) | Delegation and glue at the registry, lame delegation, response times, SOA serial on every server, SOA values |
 | [CAA](https://github.com/roberteinsle/network-tools/wiki/Checks#caa) | Allowed certificate authorities, inherited records, critical tags, iodef |
+| [SRV](https://github.com/roberteinsle/network-tools/wiki/Checks#srv-services) | Known services (Autodiscover, IMAP, submission, CalDAV, XMPP …) and expected services per domain: target resolvable, no CNAME, port, with fix suggestions |
 | [TLS certificates](https://github.com/roberteinsle/network-tools/wiki/Checks#tls-certificate-https) | HTTPS (domain, www, mta-sts) and optional MX STARTTLS on port 25: trust, host name, expiry |
 | [HTTP → HTTPS / HSTS](https://github.com/roberteinsle/network-tools/wiki/Checks#http--https--hsts) | Redirect from HTTP to HTTPS, HSTS header with max-age, includeSubDomains and preload |
 | [DANE](https://github.com/roberteinsle/network-tools/wiki/Checks#dane-tlsa) | TLSA records of the MX hosts, DNSSEC, and a match against the MX certificate |

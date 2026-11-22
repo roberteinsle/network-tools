@@ -129,6 +129,19 @@ The status of a domain is the worst status of its checks. Checks can be switched
 - Warning if `issue ";"` forbids all CAs (certificates can no longer be renewed) and for invalid `iodef` targets.
 - Error for an unknown tag with the critical flag (128): CAs must then refuse to issue.
 
+## SRV (services)
+
+SRV records (RFC 2782) tell clients where a service runs: `_service._protocol.domain` → priority, weight, port and target host.
+
+- Every run looks up the known services: mail submission (`_submission._tcp`, `_submissions._tcp`), IMAP (`_imap._tcp`, `_imaps._tcp`), POP3 (`_pop3._tcp`, `_pop3s._tcp`), Exchange Autodiscover (`_autodiscover._tcp`), SIP / Skype for Business (`_sip._tls`, `_sipfederationtls._tcp`), CalDAV and CardDAV (`_caldavs._tcp`, `_carddavs._tcp`) and XMPP (`_xmpp-client._tcp`, `_xmpp-server._tcp`).
+- A known service without a record is not a finding: not every domain offers every service. Without any SRV record the result is info.
+- **Expected SRV services** (*Domains → Edit → Advanced*): services that must exist, e.g. `_imaps._tcp` or a custom one like `_minecraft._tcp`. A missing expected service is a warning.
+- Error if a target has no A/AAAA address, if the port is 0, or if a target `.` ("service not offered") stands next to other records for the same service.
+- Warning if a target is a CNAME (not allowed by RFC 2782; some clients ignore the record) and if an expected service is marked as not offered.
+- Info for a target `.`, for a port other than the usual one (e.g. CalDAV on 8443 instead of 443) and for targets at Skype for Business Online (`*.online.lync.com`), which Microsoft has retired.
+- **Suggestions** (*Vorschläge*): every problem comes with a concrete fix in the details, usually the corrected record in zone file format, e.g. `_imaps._tcp.example.com. 3600 IN SRV 0 1 993 <host>.` or the alias target to use instead of a CNAME. The **KI-Empfehlung** button adds an explanation (see [AI copilot](AI-copilot.md)).
+- Changes to the records (priority, weight, port, target) and to the missing expected services are detected as configuration changes; address changes of the targets are not.
+
 ## TLS certificate (HTTPS)
 
 - Connects to the web hosts (domain and `www.` by default) and to `mta-sts.<domain>` if MTA-STS is published.

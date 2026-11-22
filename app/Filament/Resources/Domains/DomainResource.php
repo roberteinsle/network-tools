@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Domains;
 use App\Enums\CheckStatus;
 use App\Enums\CheckType;
 use App\Enums\DkimProvider;
+use App\Enums\SrvService;
 use App\Filament\Resources\Domains\Pages\CreateDomain;
 use App\Filament\Resources\Domains\Pages\EditDomain;
 use App\Filament\Resources\Domains\Pages\ListDomains;
@@ -138,6 +139,12 @@ class DomainResource extends Resource
                         ->placeholder('z. B. 203.0.113.10')
                         ->helperText('Werden zusätzlich zu den MX-IPs auf PTR und Blacklists geprüft.')
                         ->nestedRecursiveRules(['ip']),
+                    TagsInput::make('srv_services')
+                        ->label('Erwartete SRV-Dienste')
+                        ->placeholder('z. B. _imaps._tcp')
+                        ->helperText('Fehlt einer dieser SRV-Records, warnt der SRV-Check. Bekannte Dienste (Autodiscover, IMAP, Submission, CalDAV, XMPP …) werden immer geprüft, wenn sie veröffentlicht sind.')
+                        ->nestedRecursiveRules(['max:127', 'regex:'.SrvService::NAME_PATTERN])
+                        ->columnSpanFull(),
                     Toggle::make('check_mx_tls')
                         ->label('STARTTLS-Zertifikate der MX-Hosts prüfen')
                         ->helperText('Benötigt ausgehenden Port 25 auf dem Server.'),

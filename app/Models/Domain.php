@@ -20,7 +20,7 @@ class Domain extends Model
     protected $fillable = [
         'customer_id', 'name', 'active', 'check_interval_minutes', 'inherit_dkim_providers',
         'dkim_providers', 'dkim_selectors', 'web_hosts', 'extra_ips', 'check_mx_tls', 'notify_ip_changes',
-        'disabled_checks', 'notification_emails', 'notes',
+        'disabled_checks', 'notification_emails', 'notes', 'srv_services',
     ];
 
     protected function casts(): array
@@ -34,6 +34,7 @@ class Domain extends Model
             'dkim_selectors' => 'array',
             'web_hosts' => 'array',
             'extra_ips' => 'array',
+            'srv_services' => 'array',
             'disabled_checks' => 'array',
             'notification_emails' => 'array',
             'last_status' => CheckStatus::class,

@@ -32,6 +32,7 @@ Customers group domains, which is useful for agencies and IT service providers.
 | DKIM | Inherit providers from the customer, or pick providers for this domain; plus custom selectors. |
 | Web hosts | Hosts for the A/AAAA and HTTPS certificate checks. Empty means the domain and `www.`. |
 | Outgoing mail server IPs | Checked for PTR and blacklists in addition to the MX IPs. |
+| Expected SRV services | SRV services that must exist, as `_service._protocol` (e.g. `_imaps._tcp`). A missing one is a warning; see [Checks](Checks.md#srv-services). |
 | Check MX STARTTLS certificates | Needs outgoing port 25. Also enables the DANE certificate comparison. |
 | Notify on IP changes | Off: IP changes of A/AAAA and PTR are only logged. |
 | Disabled checks | Checks to skip for this domain. |
@@ -57,6 +58,7 @@ Four menu groups contain tools that query any name on demand. They store nothing
 | **CNAME** | Host name | The alias target and the full CNAME chain (up to ten steps, loops are detected), then the IPv4 and IPv6 addresses of the final target. |
 | **TXT** | Host name | All TXT records with their type (SPF, DMARC, DKIM, MTA-STS, TLS-RPT, BIMI, Google, Microsoft 365, Meta and Apple verification, other) and TTL. |
 | **CAA** | Host name | Which certificate authorities may issue certificates (`issue`), wildcard certificates (`issuewild`) and where violations are reported (`iodef`). CAA is inherited: if the name itself has no CAA, the nearest parent name with CAA applies, and the page says so. Without any CAA, every CA may issue. |
+| **SRV** | Domain, or a full SRV name such as `_sip._tls.example.com` | Runs the same SRV check as the monitoring (see [Checks](Checks.md#srv-services)): all known services (submission, IMAP, POP3, Autodiscover, SIP, CalDAV/CardDAV, XMPP) with priority, weight, port, target and its addresses, plus problems and **suggestions** for fixing them. Additional expected services can be entered; a full SRV name checks that service as expected. The result looks like a domain page, including the **KI-Empfehlung** button. |
 
 ### Mail-Sicherheit (mail security)
 

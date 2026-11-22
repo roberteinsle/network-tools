@@ -15,8 +15,8 @@
 - AI providers are registered in `App\Services\Ai\AiProviderRegistry` (one client per provider); `App\Services\Copilot\Copilot` builds the prompt and caches answers.
 - `DomainChecker::evaluate()` runs the registered checks without storing anything; `run()` adds storage, change detection and alerts.
 - Results several checks need (e.g. the STARTTLS certificate for the MX and DANE checks) are shared through `CheckContext::cached()` within one run.
-- The tools in the menu (*Werkzeuge*, *Mail-Sicherheit*, *Reverse-DNS*, *Fehlersuche*) are registered in the `App\Enums\DnsTool` enum, which also builds the menu entries. One page (`App\Filament\Pages\Tool`) serves all of them; `App\Services\Lookup\ToolRunner` runs a tool: mail security tools through the registered checks (`DomainChecker::evaluate()`), the others through the lookup services in `App\Services\Lookup`. All direct server queries go through `App\Support\Dns\NameserverProbe`.
-- The public resolvers of the IP tool are registered in the `App\Enums\PublicResolver` enum.
+- The tools in the menu (*Werkzeuge*, *Mail-Sicherheit*, *Reverse-DNS*, *Fehlersuche*) are registered in the `App\Enums\DnsTool` enum, which also builds the menu entries. One page (`App\Filament\Pages\Tool`) serves all of them; `App\Services\Lookup\ToolRunner` runs a tool: mail security tools and SRV through the registered checks (`DomainChecker::evaluate()`), the others through the lookup services in `App\Services\Lookup`. All direct server queries go through `App\Support\Dns\NameserverProbe`.
+- The public resolvers of the IP tool are registered in the `App\Enums\PublicResolver` enum, the services the SRV check looks up in `App\Enums\SrvService`.
 - Who gets an alert is decided in `Domain::recipientsFor()`; the customer's level is the `App\Enums\NotifyLevel` enum.
 - `DomainChecker` runs the registered checks for a domain, `ChangeDetector` compares the run with the previous one, and `AlertNotifier` sends the mail.
 

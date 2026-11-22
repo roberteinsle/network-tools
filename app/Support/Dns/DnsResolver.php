@@ -103,6 +103,27 @@ class DnsResolver
         return $list;
     }
 
+    /**
+     * SRV-Records (RFC 2782), sortiert nach Priorität und absteigendem Gewicht.
+     * Ziel '' = „.“ (Dienst wird ausdrücklich nicht angeboten).
+     *
+     * @return list<array{priority:int, weight:int, port:int, target:string, ttl:int}>
+     */
+    public function srv(string $name): array
+    {
+        $list = array_map(fn (RR $rr) => [
+            'priority' => (int) $rr->priority,
+            'weight' => (int) $rr->weight,
+            'port' => (int) $rr->port,
+            'target' => rtrim(strtolower((string) $rr->target), '.'),
+            'ttl' => (int) $rr->ttl,
+        ], $this->query($name, 'SRV')->ofType('SRV'));
+
+        usort($list, fn ($a, $b) => [$a['priority'], -$a['weight'], $a['target'], $a['port']] <=> [$b['priority'], -$b['weight'], $b['target'], $b['port']]);
+
+        return $list;
+    }
+
     /** @return list<string> Nameserver-Hostnamen, sortiert */
     public function ns(string $domain): array
     {

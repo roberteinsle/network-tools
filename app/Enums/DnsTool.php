@@ -20,6 +20,7 @@ enum DnsTool: string
     case Cname = 'cname';
     case Txt = 'txt';
     case Caa = 'caa';
+    case Srv = 'srv';
     // Mail-Sicherheit
     case Spf = 'spf';
     case Dmarc = 'dmarc';
@@ -52,6 +53,7 @@ enum DnsTool: string
             self::Cname => 'CNAME',
             self::Txt => 'TXT',
             self::Caa => 'CAA',
+            self::Srv => 'SRV',
             self::Spf => 'SPF',
             self::Dmarc => 'DMARC',
             self::Dkim => 'DKIM',
@@ -75,6 +77,7 @@ enum DnsTool: string
             self::Cname => 'Alias-Ziel eines Namens und die komplette CNAME-Kette.',
             self::Txt => 'Text-Records wie SPF, DMARC und Verifizierungen.',
             self::Caa => 'Welche Zertifizierungsstellen Zertifikate für die Domain ausstellen dürfen.',
+            self::Srv => 'SRV-Records bekannter Dienste (Autodiscover, IMAP, Submission, CalDAV, XMPP …) mit Prüfung der Ziele und Vorschlägen bei Fehlern.',
             self::Spf => 'SPF-Record mit Bewertung und Zähler für das 10-DNS-Lookup-Limit.',
             self::Dmarc => 'DMARC-Richtlinie, Reports und Autorisierung externer Report-Empfänger.',
             self::Dkim => 'DKIM-Schlüssel der angegebenen Selektoren (DKIM-Selektoren lassen sich nicht aus dem DNS auslesen, z. B. M365: selector1/selector2).',
@@ -108,6 +111,7 @@ enum DnsTool: string
             self::Cname => Heroicon::OutlinedArrowUturnRight,
             self::Txt => Heroicon::OutlinedDocumentText,
             self::Caa => Heroicon::OutlinedCheckBadge,
+            self::Srv => Heroicon::OutlinedSquares2x2,
             self::Spf => Heroicon::OutlinedPaperAirplane,
             self::Dmarc => Heroicon::OutlinedShieldCheck,
             self::Dkim => Heroicon::OutlinedKey,
@@ -121,7 +125,7 @@ enum DnsTool: string
         };
     }
 
-    /** Für Werkzeuge der Mail-Sicherheit: der registrierte Check, der ausgeführt wird. */
+    /** Werkzeuge, die einen registrierten Check ausführen (Mail-Sicherheit, SRV). */
     public function checkType(): ?CheckType
     {
         return match ($this) {
@@ -131,6 +135,7 @@ enum DnsTool: string
             self::MtaSts => CheckType::MtaSts,
             self::TlsRpt => CheckType::TlsRpt,
             self::Dane => CheckType::Dane,
+            self::Srv => CheckType::Srv,
             default => null,
         };
     }
@@ -140,6 +145,7 @@ enum DnsTool: string
     {
         return match ($this) {
             self::Ptr => 'IP-Adresse oder Hostname',
+            self::Srv => 'Domain oder SRV-Name',
             self::Ip, self::Cname, self::Txt, self::Caa, self::Trace, self::Dnssec => 'Hostname',
             default => 'Domain',
         };

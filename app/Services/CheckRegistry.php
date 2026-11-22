@@ -18,6 +18,7 @@ use App\Checks\MxCheck;
 use App\Checks\NsCheck;
 use App\Checks\PtrCheck;
 use App\Checks\SpfCheck;
+use App\Checks\SrvCheck;
 use App\Checks\TlsMxCheck;
 use App\Checks\TlsRptCheck;
 use App\Checks\TlsWebCheck;
@@ -38,6 +39,7 @@ class CheckRegistry
         DnssecCheck::class,
         NsCheck::class,
         CaaCheck::class,
+        SrvCheck::class,
         TlsWebCheck::class,
         HttpCheck::class,
         TlsMxCheck::class,

@@ -10,7 +10,7 @@ use App\Services\DomainChecker;
 use App\Support\Dns\DnsException;
 
 /**
- * Führt ein Werkzeug aus der DnsTool-Registry aus. Mail-Sicherheit nutzt die registrierten
+ * Führt ein Werkzeug aus der DnsTool-Registry aus. Mail-Sicherheit und SRV nutzen die registrierten
  * Checks über DomainChecker::evaluate() (nichts wird gespeichert, keine Mail), alle anderen
  * Werkzeuge die Lookup-Services. Ergebnis als Arrays (Livewire-tauglich):
  *  - ['type' => 'checks', 'results' => [...]]   Darstellung wie auf der Domain-Seite
@@ -26,10 +26,16 @@ class ToolRunner
         private readonly DnssecLookup $dnssec,
     ) {}
 
-    /** @param  array{name:string, dkim_providers?:array, dkim_selectors?:array, check_mx_tls?:bool, record_type?:string}  $input */
+    /** @param  array{name:string, dkim_providers?:array, dkim_selectors?:array, check_mx_tls?:bool, record_type?:string, srv_services?:array}  $input */
     public function run(DnsTool $tool, array $input): array
     {
         $name = $input['name'];
+
+        // SRV: ein vollständiger Name wie _sip._tls.example.com prüft genau diesen Dienst (als erwartet)
+        if ($tool === DnsTool::Srv && preg_match('/^(_[^.]+\._[^.]+)\.(.+)$/', $name, $m)) {
+            $name = $m[2];
+            $input['srv_services'] = [...($input['srv_services'] ?? []), $m[1]];
+        }
 
         if ($type = $tool->checkType()) {
             return ['type' => 'checks', 'results' => $this->check($tool, $type, $name, $input)];
@@ -67,6 +73,7 @@ class ToolRunner
             'dkim_providers' => $input['dkim_providers'] ?? [],
             'dkim_selectors' => $input['dkim_selectors'] ?? [],
             'check_mx_tls' => (bool) ($input['check_mx_tls'] ?? false),
+            'srv_services' => $input['srv_services'] ?? [],
         ]);
 
         $outcomes = $this->checker->evaluate($domain, [$type]);

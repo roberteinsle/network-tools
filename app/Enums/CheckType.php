@@ -18,6 +18,7 @@ enum CheckType: string implements HasLabel
     case Dnssec = 'dnssec';
     case Ns = 'ns';
     case Caa = 'caa';
+    case Srv = 'srv';
     case TlsWeb = 'tls_web';
     case Http = 'http';
     case TlsMx = 'tls_mx';
@@ -40,6 +41,7 @@ enum CheckType: string implements HasLabel
             self::Dnssec => 'DNSSEC',
             self::Ns => 'Nameserver (NS / SOA)',
             self::Caa => 'CAA',
+            self::Srv => 'SRV (Dienste)',
             self::TlsWeb => 'TLS-Zertifikat (HTTPS)',
             self::Http => 'HTTP → HTTPS / HSTS',
             self::TlsMx => 'TLS-Zertifikat (MX / STARTTLS)',

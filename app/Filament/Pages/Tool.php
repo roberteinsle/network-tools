@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Enums\CheckStatus;
 use App\Enums\DkimProvider;
 use App\Enums\DnsTool;
+use App\Enums\SrvService;
 use App\Filament\Support\ResultSchema;
 use App\Models\CheckResult;
 use App\Models\CheckRun;
@@ -111,6 +112,13 @@ class Tool extends Page
                 Toggle::make('check_mx_tls')
                     ->label('Zertifikate per STARTTLS abgleichen (Port 25)')
                     ->helperText('Nur sinnvoll, wenn der Server ausgehenden Port 25 erlaubt.'),
+            ],
+            DnsTool::Srv => [
+                TagsInput::make('srv_services')
+                    ->label('Zusätzlich erwartete Dienste')
+                    ->placeholder('z. B. _minecraft._tcp')
+                    ->helperText('Bekannte Dienste werden immer abgefragt. Hier eingetragene Dienste müssen vorhanden sein, sonst gibt es eine Warnung.')
+                    ->nestedRecursiveRules(['max:127', 'regex:'.SrvService::NAME_PATTERN]),
             ],
             DnsTool::Dnssec => [
                 Select::make('record_type')
