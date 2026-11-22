@@ -8,8 +8,11 @@ use App\Enums\DkimProvider;
 use App\Support\Dns\DnsException;
 
 /**
- * Prüft die DKIM-Selektoren der für Kunde/Domain gewählten Anbieter (M365, Google …)
- * sowie eigene Selektoren. Pro Anbieter muss mindestens ein gültiger Schlüssel existieren.
+ * Prüft die DKIM-Selektoren der für Kunde/Domain gewählten Anbieter (M365, Google …),
+ * eigene Selektoren und – wenn der MX auf Exchange Online zeigt – selector1/selector2.
+ * Fehlende Selektoren nicht genutzter Anbieter werden nicht gemeldet. Fehler gibt es nur,
+ * wenn die Domain Mail versendet und für keinen Anbieter ein gültiger Schlüssel existiert,
+ * oder wenn der MX auf Microsoft 365 zeigt und dort kein Schlüssel aktiv ist.
  */
 class DkimCheck implements Check
 {
@@ -22,10 +25,19 @@ class DkimCheck implements Check
     {
         // Hinweise (z. B. Rotations-Reserve) sollen ein sonst gültiges DKIM nicht auf „Hinweis“ ziehen
         $out = CheckOutcome::make()->infoIsNeutral();
-        $groups = [];
 
+        if (! $ctx->sendsMail()) {
+            return $out->notApplicable('Domain versendet keine Mail (SPF „v=spf1 -all“, kein MX bzw. Null-MX) – DKIM nicht relevant.')->state(['relevant' => false]);
+        }
+
+        $groups = [];
         foreach ($ctx->domain->effectiveDkimProviders() as $provider) {
             $groups[$provider->getLabel()] = $provider->selectors();
+        }
+        $m365 = DkimProvider::Microsoft365->getLabel();
+        $mxIsM365 = self::mxIsMicrosoft365($ctx);
+        if ($mxIsM365) {
+            $groups[$m365] ??= DkimProvider::Microsoft365->selectors();
         }
         $custom = array_values(array_filter(array_map('trim', $ctx->domain->dkim_selectors ?? [])));
         if ($custom !== []) {
@@ -39,6 +51,8 @@ class DkimCheck implements Check
         $state = [];
         $validCount = 0;
         $ses = [];
+        $checkedSelectors = [];
+        $m365Missing = false;
 
         foreach ($groups as $label => $selectors) {
             $validInGroup = 0;
@@ -68,16 +82,26 @@ class DkimCheck implements Check
             }
 
             $validCount += $validInGroup;
+            if ($checked > 0) {
+                $checkedSelectors = [...$checkedSelectors, ...array_diff($selectors, array_keys($ses))];
+            }
 
-            if ($checked > 0 && $validInGroup === 0) {
-                $out->error("{$label}: kein gültiger DKIM-Schlüssel gefunden (".implode(', ', array_diff($selectors, array_keys($ses))).').');
-            } elseif ($label === DkimProvider::Microsoft365->getLabel() && $validInGroup === 1) {
+            // Fehlende Selektoren nicht genutzter Anbieter werden nicht gemeldet – außer M365 laut MX
+            if ($label === $m365 && $mxIsM365 && $checked > 0 && $validInGroup === 0) {
+                $m365Missing = true;
+                $out->error('MX zeigt auf Microsoft 365, aber selector1/selector2 haben keinen gültigen Schlüssel – Exchange Online signiert nicht mit DKIM. DKIM im Defender-Portal aktivieren und die beiden CNAMEs anlegen.');
+            } elseif ($label === $m365 && $validInGroup === 1) {
                 $out->info("{$label}: nur ".implode(', ', $found).' aktiv – für die Schlüsselrotation sollten selector1 und selector2 existieren.');
             }
         }
 
         $sesActive = $ses === [] ? [] : $this->evaluateSes($out, $ses);
         $validCount += count($sesActive);
+
+        if ($validCount === 0 && ! $m365Missing && ($checkedSelectors !== [] || $ses !== [])) {
+            $tried = array_values(array_unique([...$checkedSelectors, ...array_map(fn ($s) => mb_strimwidth($s, 0, 8, '…'), array_keys($ses))]));
+            $out->error('Kein gültiger DKIM-Schlüssel gefunden (geprüft: '.implode(', ', $tried).') – die Domain versendet Mail, Empfänger sehen keine DKIM-Signatur.');
+        }
 
         if (! $out->status()->isProblem()) {
             $out->summary("{$validCount} gültige(r) DKIM-Schlüssel".($ses !== [] ? ', davon '.count($sesActive).' AWS SES' : ''));
@@ -115,10 +139,8 @@ class DkimCheck implements Check
             return [];
         }
 
+        // Reserve-Tokens ohne Schlüssel sind gewollt und werden nicht gemeldet
         $out->ok('AWS SES: '.count($active).' aktive(r) Schlüssel ('.$short($active).').');
-        foreach ($reserve as $selector) {
-            $out->info("{$selector}: Rotations-Reserve (AWS SES).");
-        }
 
         return $active;
     }
@@ -130,6 +152,18 @@ class DkimCheck implements Check
         $cname = is_array($result['state']) ? ($result['state']['cname'] ?? null) : null;
 
         return [...$result, 'ses' => self::isSes($cname)];
+    }
+
+    /** Mindestens ein MX zeigt auf Exchange Online (*.mail.protection.outlook.com). */
+    private static function mxIsMicrosoft365(CheckContext $ctx): bool
+    {
+        foreach ($ctx->mxHosts() as $host) {
+            if (str_ends_with($host, '.mail.protection.outlook.com')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** CNAME auf *.dkim.amazonses.com (jede Region) = Token von AWS SES Easy DKIM. */

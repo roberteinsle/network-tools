@@ -17,6 +17,9 @@ class FakeDnsResolver extends DnsResolver
     /** AD-Flag (DNSSEC validiert) für alle Antworten. */
     public bool $authenticated = false;
 
+    /** @var list<string> Namen, deren Antworten trotz kein AD-Flag tragen */
+    public array $unauthenticated = [];
+
     /** AA-Flag (autoritative Antwort) für alle Antworten. */
     public bool $authoritative = false;
 
@@ -72,6 +75,8 @@ class FakeDnsResolver extends DnsResolver
             }
         }
 
-        return new DnsAnswer(array_map(fn ($l) => RR::fromString($l), $lines), $this->authenticated, false, $this->authoritative);
+        $ad = $this->authenticated && ! in_array(strtolower(rtrim($name, '.')), $this->unauthenticated, true);
+
+        return new DnsAnswer(array_map(fn ($l) => RR::fromString($l), $lines), $ad, false, $this->authoritative);
     }
 }

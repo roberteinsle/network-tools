@@ -41,6 +41,12 @@ final class CheckOutcome
         return $this->add(CheckStatus::Info, $text);
     }
 
+    /** Prüfung für diese Domain ohne Bedeutung (zählt nie als Problem, kein Alarm). */
+    public function notApplicable(string $text): self
+    {
+        return $this->add(CheckStatus::NotApplicable, $text);
+    }
+
     public function warning(string $text): self
     {
         return $this->add(CheckStatus::Warning, $text);

@@ -60,8 +60,9 @@ class DmarcAndDkimCheckTest extends TestCase
 
         $texts = implode("\n", array_column($out->details()['messages'], 'text'));
         $this->assertStringContainsString('RSA 2048 Bit', $texts);
-        $this->assertStringContainsString('Microsoft 365: kein gültiger DKIM-Schlüssel', $texts);
-        $this->assertSame(CheckStatus::Error, $out->status());
+        // M365 ist ausgewählt, aber nicht genutzt (MX nicht bei Exchange Online): nicht melden
+        $this->assertStringNotContainsString('Microsoft 365', $texts);
+        $this->assertSame(CheckStatus::Ok, $out->status());
     }
 
     private function rsaKey(): string
@@ -81,18 +82,18 @@ class DmarcAndDkimCheckTest extends TestCase
     }
 
     #[Test]
-    public function ses_reserve_tokens_are_info_and_overall_status_is_ok(): void
+    public function ses_reserve_tokens_are_not_reported_and_overall_status_is_ok(): void
     {
         $key = $this->rsaKey();
         $tokens = ['xwhlygyaaaa', 'xwhlygybbbb', 'xwhlygycccc', 'w7qqqaaaa', 'w7qqqbbbb', 'w7qqqcccc'];
-        $records = ["dkim._domainkey.einsle.cloud. 300 IN TXT \"v=DKIM1;k=rsa;t=s;s=email;p={$key}\""];
+        $records = ["dkim._domainkey.example.org. 300 IN TXT \"v=DKIM1;k=rsa;t=s;s=email;p={$key}\""];
         foreach ($tokens as $i => $token) {
-            array_push($records, ...$this->sesToken($token, in_array($i, [0, 3], true) ? $key : null, 'einsle.cloud'));
+            array_push($records, ...$this->sesToken($token, in_array($i, [0, 3], true) ? $key : null, 'example.org'));
         }
 
         $dns = new FakeDnsResolver($records);
         $out = (new DkimCheck)->run(new CheckContext(
-            new Domain(['name' => 'einsle.cloud', 'inherit_dkim_providers' => false, 'dkim_providers' => ['mailcow'], 'dkim_selectors' => $tokens]),
+            new Domain(['name' => 'example.org', 'inherit_dkim_providers' => false, 'dkim_providers' => ['mailcow'], 'dkim_selectors' => $tokens]),
             $dns, $dns, new AppSetting,
         ));
 
@@ -101,19 +102,23 @@ class DmarcAndDkimCheckTest extends TestCase
         $this->assertSame(CheckStatus::Ok, $out->status(), $texts);
         $this->assertStringContainsString('dkim: RSA 2048 Bit', $texts);
         $this->assertStringContainsString('AWS SES: 2 aktive(r) Schlüssel (xwhlygy…, w7qqqaa…)', $texts);
-        $this->assertSame(4, substr_count($texts, 'Rotations-Reserve (AWS SES)'));
+        $this->assertStringNotContainsString('Rotations-Reserve', $texts);
+        $this->assertNotContains('info', array_column($messages, 'status'));
         $this->assertNotContains('warning', array_column($messages, 'status'));
         $this->assertStringNotContainsString('widerrufen', $texts);
     }
 
     #[Test]
-    public function ses_without_any_active_key_is_a_warning(): void
+    public function ses_without_any_active_key_is_an_error_when_no_other_key_exists(): void
     {
         $records = [...$this->sesToken('aaaa', null), ...$this->sesToken('bbbb', null), ...$this->sesToken('cccc', null)];
         $out = (new DkimCheck)->run($this->ctx($records, ['inherit_dkim_providers' => false, 'dkim_selectors' => ['aaaa', 'bbbb', 'cccc']]));
 
-        $this->assertSame(CheckStatus::Warning, $out->status());
-        $this->assertStringContainsString('AWS SES: kein Token mit gültigem Schlüssel', implode("\n", array_column($out->details()['messages'], 'text')));
+        // Domain versendet Mail (kein SPF -all) und hat nirgends einen gültigen Schlüssel
+        $this->assertSame(CheckStatus::Error, $out->status());
+        $texts = implode("\n", array_column($out->details()['messages'], 'text'));
+        $this->assertStringContainsString('AWS SES: kein Token mit gültigem Schlüssel', $texts);
+        $this->assertStringContainsString('Kein gültiger DKIM-Schlüssel gefunden', $texts);
     }
 
     #[Test]

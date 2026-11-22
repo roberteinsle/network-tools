@@ -141,10 +141,18 @@ class HttpAndDaneCheckTest extends TestCase
         $out = (new DaneCheck($this->tls($cert)))->run($this->ctx($this->mx("3 1 1 {$wrong}"), ['check_mx_tls' => true], authenticated: true));
         $this->assertSame(CheckStatus::Error, $out->status());
 
-        $out = (new DaneCheck($this->tls($cert)))->run($this->ctx($this->mx("3 1 1 {$wrong}")));
+        // Domain-Zone validiert, TLSA des MX-Hosts aber nicht signiert
+        $ctx = $this->ctx($this->mx("3 1 1 {$wrong}"), authenticated: true);
+        $ctx->dns->unauthenticated[] = '_25._tcp.mx.example.com';
+        $out = (new DaneCheck($this->tls($cert)))->run($ctx);
         $this->assertSame(CheckStatus::Warning, $out->status());
         $this->assertStringContainsString('ohne gültige DNSSEC-Signatur', $this->texts($out));
         $this->assertStringContainsString('nur mit aktivierter STARTTLS-Prüfung', $this->texts($out));
+
+        // Domain-Zone selbst nicht validiert: kein eigener DANE-Befund, Verweis auf DNSSEC
+        $out = (new DaneCheck($this->tls($cert)))->run($this->ctx($this->mx("3 1 1 {$wrong}")));
+        $this->assertSame(CheckStatus::Info, $out->status());
+        $this->assertStringContainsString('siehe Prüfung DNSSEC', $this->texts($out));
     }
 
     #[Test]

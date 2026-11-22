@@ -4,6 +4,7 @@ namespace App\Checks;
 
 use App\Enums\CheckStatus;
 use App\Enums\CheckType;
+use App\Support\Cloudflare;
 use App\Support\Dns\DnsException;
 use App\Support\Dns\DnsResolver;
 
@@ -166,8 +167,12 @@ class SpfCheck implements Check
                     }
                     try {
                         if ($name === 'a') {
-                            if ($this->dns->ips($target) === []) {
+                            $ips = $this->dns->ips($target);
+                            if ($ips === []) {
                                 $this->voids++;
+                            } elseif ($depth === 0 && Cloudflare::allProxyIps($ips)) {
+                                // Proxy-IPs versenden keine Mail – kein Fehler, nur überflüssig
+                                $this->problems[] = ['info', "„a“ erlaubt nur Cloudflare-IPs ({$target} zeigt auf den Cloudflare-Proxy), ist überflüssig und kostet einen DNS-Lookup."];
                             }
                         } else {
                             $mx = $this->dns->mx($target);

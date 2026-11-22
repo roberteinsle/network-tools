@@ -45,14 +45,14 @@ class ResultSchema
                         ->columnSpan(['md' => 3]),
                 ]),
                 Section::make('Details')
-                    ->collapsed(fn ($record) => $record?->status === CheckStatus::Ok)
+                    ->collapsed(fn ($record) => (bool) $record?->status?->isQuiet())
                     ->compact()
                     ->schema([
                         ViewEntry::make('copilot_button')
                             ->hiddenLabel()
                             ->view('filament.copilot-button')
                             ->state(fn ($record) => $record?->check?->value)
-                            ->visible(fn ($record) => $record !== null && $record->status !== CheckStatus::Ok),
+                            ->visible(fn ($record) => $record !== null && ! $record->status->isQuiet()),
                         RepeatableEntry::make('details.messages')
                             ->hiddenLabel()
                             ->state(fn ($record) => self::bySeverity($record?->details['messages'] ?? [], fn ($m) => CheckStatus::tryFrom($m['status']) ?? CheckStatus::Unknown)->all())

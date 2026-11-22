@@ -19,6 +19,9 @@ class MtaStsCheck implements Check
         $out = CheckOutcome::make();
         $records = array_values(array_filter($ctx->dns->txt('_mta-sts.'.$ctx->name()), fn ($t) => preg_match('/^v=STSv1\s*;/i', trim($t))));
 
+        if ($records === [] && ! $ctx->receivesMail()) {
+            return $out->notApplicable('Domain empfängt keine Mail (kein MX bzw. Null-MX) – MTA-STS nicht relevant.')->state(['record' => null]);
+        }
         if ($records === []) {
             return $out->info('Kein MTA-STS eingerichtet (optional, schützt eingehende Mails vor TLS-Downgrade).')->state(['record' => null]);
         }

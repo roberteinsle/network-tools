@@ -17,6 +17,7 @@ Special cases:
 
 - The **first run** of a new domain only reports existing warnings and errors.
 - **Not checkable** (timeout, resolver problem) never triggers a mail, neither when it appears nor when it goes away. Network hiccups do not create false alarms.
+- **Not relevant** never triggers a mail; a change between not relevant and OK or info is only logged.
 - **IP changes** of A/AAAA and PTR (CDNs, Microsoft 365) are only logged. Enable *Notify on IP changes* on a domain to get mails for them.
 
 One mail per domain and run lists all changes, with old and new status and the summaries.

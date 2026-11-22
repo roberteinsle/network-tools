@@ -31,7 +31,10 @@ class PtrCheck implements Check
         }
 
         if ($targets === []) {
-            return $out->info('Keine IPs zu prüfen (kein MX, keine ausgehenden IPs gepflegt).')->state([]);
+            return ($ctx->receivesMail()
+                ? $out->info('Keine IPs zu prüfen (MX-Hosts ohne Adresse, keine ausgehenden IPs gepflegt).')
+                : $out->notApplicable('Domain empfängt keine Mail und hat keine ausgehenden IPs gepflegt – PTR nicht relevant.'))
+                ->state([]);
         }
 
         $state = [];

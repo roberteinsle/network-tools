@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\Domain;
 use App\Support\Dns\DnsException;
 use App\Support\Dns\DnsResolver;
+use NetDNS2\RR;
 use Throwable;
 
 /**
@@ -70,6 +71,78 @@ class CheckContext
         $mx = $this->mx();
 
         return count($mx) === 1 && $mx[0]['host'] === '';
+    }
+
+    /** Null-MX steht neben weiteren MX-Records (verletzt RFC 7505). */
+    public function hasMixedNullMx(): bool
+    {
+        $mx = $this->mx();
+
+        return count($mx) > 1 && in_array('', array_column($mx, 'host'), true);
+    }
+
+    /** Domain empfängt Mail: mindestens ein MX und kein (alleiniger) Null-MX. */
+    public function receivesMail(): bool
+    {
+        return $this->mxHosts() !== [] && ! $this->hasNullMx();
+    }
+
+    /** SPF-Record der Domain (erster) oder null. */
+    public function spfRecord(): ?string
+    {
+        return $this->remember('spf', fn () => SpfCheck::records($this->dns, $this->name())[0] ?? null);
+    }
+
+    /**
+     * Domain versendet Mail – außer sie empfängt keine (kein MX/Null-MX) und verbietet
+     * per SPF jeden Versand („v=spf1 -all“ ohne weitere Mechanismen).
+     */
+    public function sendsMail(): bool
+    {
+        $spf = $this->spfRecord();
+        $noSending = $spf !== null && preg_match('/^v=spf1\s+-all$/i', preg_replace('/\s+/', ' ', trim($spf)));
+
+        return ! ($noSending && ! $this->receivesMail());
+    }
+
+    /** Die Zone der Domain ist per DNSSEC validiert (AD-Flag des Resolvers). */
+    public function dnssecValidated(): bool
+    {
+        try {
+            return $this->dns->query($this->name(), 'SOA', true)->authenticated;
+        } catch (DnsException) {
+            return false;
+        }
+    }
+
+    /**
+     * TLSA-Records (DANE) unter _25._tcp eines MX-Hosts; geteilt von DNSSEC- und DANE-Check.
+     *
+     * @return array{records: list<RR>, authenticated: bool}
+     */
+    public function tlsa(string $host): array
+    {
+        return $this->cached('tlsa:'.$host, function () use ($host) {
+            $answer = $this->dns->query("_25._tcp.{$host}", 'TLSA', true);
+
+            return ['records' => $answer->ofType('TLSA'), 'authenticated' => $answer->authenticated];
+        });
+    }
+
+    /** MX-Hosts mit veröffentlichten TLSA-Records (Abfragefehler zählen nicht). @return list<string> */
+    public function mxHostsWithTlsa(): array
+    {
+        if (! $this->receivesMail()) {
+            return [];
+        }
+
+        return array_values(array_filter($this->mxHosts(), function (string $host) {
+            try {
+                return $this->tlsa($host)['records'] !== [];
+            } catch (DnsException) {
+                return false;
+            }
+        }));
     }
 
     /** @return list<string> */

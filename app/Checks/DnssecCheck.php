@@ -3,6 +3,7 @@
 namespace App\Checks;
 
 use App\Enums\CheckType;
+use App\Support\Cloudflare;
 use App\Support\Dns\DnsException;
 use App\Support\Dns\Dnssec;
 use NetDNS2\RR;
@@ -13,6 +14,9 @@ use NetDNS2\RR;
  */
 class DnssecCheck implements Check
 {
+    /** Warnung erst bei weniger Restlaufzeit einer Signatur (Stunden). */
+    public const EXPIRY_WARNING_HOURS = 6;
+
     public function type(): CheckType
     {
         return CheckType::Dnssec;
@@ -40,21 +44,28 @@ class DnssecCheck implements Check
         $keyInfo = array_map(fn ($rr) => sprintf('Flags %d (%s), Algorithmus %d', $rr->flags, $rr->flags & 1 ? 'KSK' : 'ZSK', $rr->algorithm->value), $keys);
         $out->data('DS (Parent)', $dsInfo)->data('DNSKEY (Zone)', $keyInfo)->data('AD-Flag', $soa->authenticated);
 
+        // DANE der MX-Hosts wirkt nur mit validierter Domain-Zone – das ist ein DNSSEC-Befund, kein eigener DANE-Befund
+        $dane = $soa->authenticated ? [] : $ctx->mxHostsWithTlsa();
+        $daneNote = $dane !== [] ? ' DANE (TLSA für '.implode(', ', $dane).') ist veröffentlicht, wird von sendenden Servern aber erst mit validiertem DNSSEC der Domain angewendet.' : '';
+
         if ($ds === [] && $keys === []) {
-            return $out->warning('Domain ist nicht mit DNSSEC signiert.')->state(['status' => 'unsigned']);
+            return ($dane !== []
+                ? $out->warning('Domain ist nicht mit DNSSEC signiert.'.$daneNote)
+                : $out->info('Domain ist nicht mit DNSSEC signiert (optional).'))
+                ->state(['status' => 'unsigned', 'dane' => $dane !== []]);
         }
         if ($ds === []) {
-            return $out->warning('Zone ist signiert, aber beim Registrar ist kein DS-Record hinterlegt – Vertrauenskette fehlt.')
+            return $out->warning('DNSSEC unvollständig: DS-Record beim Registrar fehlt. Die Zone ist signiert, aber ohne DS gibt es keine Vertrauenskette.'.$daneNote)
                 ->state(['status' => 'no-ds', 'keys' => count($keys)]);
         }
         if ($keys === []) {
-            return $out->error('DS-Record vorhanden, aber keine DNSKEYs in der Zone – Validierung schlägt fehl.')
+            return $out->error('DS-Record vorhanden, aber keine DNSKEYs in der Zone – Validierung schlägt fehl.'.$daneNote)
                 ->state(['status' => 'no-dnskey']);
         }
 
         $soa->authenticated
             ? $out->ok('DNSSEC aktiv und erfolgreich validiert (AD-Flag gesetzt).')
-            : $out->warning('DS und DNSKEY vorhanden, aber der Resolver bestätigt die Validierung nicht (kein AD-Flag).');
+            : $out->warning('DS und DNSKEY vorhanden, aber der Resolver bestätigt die Validierung nicht (kein AD-Flag).'.$daneNote);
 
         foreach ($ds as $rr) {
             if (Dnssec::isDeprecated($rr->algorithm->value)) {
@@ -72,7 +83,7 @@ class DnssecCheck implements Check
         }
 
         // Ablauf der Signaturen (RRSIG über SOA und DNSKEY)
-        $this->checkSignatures($out, [...$soa->ofType('RRSIG'), ...$ctx->dns->query($name, 'DNSKEY', true)->ofType('RRSIG')]);
+        $this->checkSignatures($out, [...$soa->ofType('RRSIG'), ...$ctx->dns->query($name, 'DNSKEY', true)->ofType('RRSIG')], $this->onCloudflare($ctx));
 
         $tags = array_map(fn ($rr) => $rr->keytag, $ds);
         sort($tags);
@@ -80,8 +91,20 @@ class DnssecCheck implements Check
         return $out->state(['status' => $soa->authenticated ? 'secure' : 'unvalidated', 'ds' => $tags]);
     }
 
+    /** Cloudflare signiert live mit kurzer Laufzeit – dort ist eine nahe Ablaufzeit normal. */
+    private function onCloudflare(CheckContext $ctx): bool
+    {
+        try {
+            $ns = $ctx->dns->ns($ctx->name());
+        } catch (DnsException) {
+            return false;
+        }
+
+        return $ns !== [] && array_filter($ns, fn ($host) => ! Cloudflare::isNameserver($host)) === [];
+    }
+
     /** @param  list<RR>  $sigs */
-    private function checkSignatures(CheckOutcome $out, array $sigs): void
+    private function checkSignatures(CheckOutcome $out, array $sigs, bool $liveSigning = false): void
     {
         $earliest = null;
         foreach ($sigs as $sig) {
@@ -100,8 +123,9 @@ class DnssecCheck implements Check
 
         if ($hours < 0) {
             $out->error("RRSIG über {$type} ist abgelaufen – validierende Resolver lehnen die Zone ab.");
-        } elseif ($hours < 72) {
-            $out->warning('RRSIG über '.$type.' läuft in '.max(1, (int) $hours).' Stunden ab – wird die Zone nicht neu signiert, fällt sie aus.');
+        } elseif (! $liveSigning && $hours < self::EXPIRY_WARNING_HOURS) {
+            $minutes = max(1, (int) now()->diffInMinutes($exp, false));
+            $out->warning("RRSIG über {$type} läuft in ".($minutes >= 60 ? intdiv($minutes, 60).' Stunde(n)' : "{$minutes} Minute(n)").' ab – wird die Zone nicht neu signiert, fällt sie aus.');
         }
     }
 }

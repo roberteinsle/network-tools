@@ -67,6 +67,8 @@ Self-hosted domain monitor: Laravel 13 + Filament 5 on PHP 8.5, PostgreSQL in pr
 - No personal data of the maintainer in the repository (code, docs, handbuch/, wiki, commits, issues).
 - Spamhaus only via DQS with the user's key; public Spamhaus zones are never queried.
 - "Not checkable" (`CheckStatus::Unknown`) must never trigger an alert.
+- "Not relevant" (`CheckStatus::NotApplicable`, e.g. MTA-STS for a domain without MX) is never a problem. The overall domain status comes from `CheckStatus::overall()`: info and not relevant count as OK.
+- Cloudflare proxy IP ranges and name server detection live only in `App\Support\Cloudflare`. Mail-related facts several checks need (`receivesMail()`, `sendsMail()`, `dnssecValidated()`, `tlsa()`) live in `CheckContext`.
 
 ## Documentation
 

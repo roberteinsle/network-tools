@@ -26,17 +26,17 @@ class DaneCheck implements Check
     public function run(CheckContext $ctx): CheckOutcome
     {
         $out = CheckOutcome::make();
-        $hosts = $ctx->hasNullMx() ? [] : $ctx->mxHosts();
-        if ($hosts === []) {
-            return $out->info('Keine MX-Hosts – DANE nicht relevant.')->state([]);
+        if (! $ctx->receivesMail()) {
+            return $out->notApplicable('Domain empfängt keine Mail (kein MX bzw. Null-MX) – DANE nicht relevant.')->state([]);
         }
+        $hosts = $ctx->mxHosts();
 
         $tlsa = [];
         $validated = [];
         $failed = [];
         foreach ($hosts as $host) {
             try {
-                $answer = $ctx->dns->query("_25._tcp.{$host}", 'TLSA', true);
+                $answer = $ctx->tlsa($host);
             } catch (DnsException $e) {
                 // Manche Anbieter (z. B. Exchange Online) beantworten TLSA-Abfragen mit SERVFAIL
                 $failed[$host] = $e->getMessage();
@@ -44,7 +44,7 @@ class DaneCheck implements Check
 
                 continue;
             }
-            $rrs = $answer->ofType('TLSA');
+            $rrs = $answer['records'];
             if ($rrs !== []) {
                 $tlsa[$host] = array_map(fn ($rr) => [
                     'usage' => (int) $rr->cert_usage,
@@ -52,7 +52,7 @@ class DaneCheck implements Check
                     'matching' => (int) $rr->matching_type,
                     'data' => strtolower((string) $rr->certificate),
                 ], $rrs);
-                $validated[$host] = $answer->authenticated;
+                $validated[$host] = $answer['authenticated'];
             }
         }
 
@@ -60,8 +60,14 @@ class DaneCheck implements Check
             return $out->info('Kein DANE eingerichtet (optional, schützt eingehende Mails vor TLS-Downgrade und falschen Zertifikaten).')->state([]);
         }
 
-        if (! $ctx->dns->query($ctx->name(), 'MX', true)->authenticated) {
-            $out->warning('MX-Records der Domain sind nicht DNSSEC-validiert – sendende Server wenden DANE nicht an.');
+        if (! $ctx->dnssecValidated()) {
+            // Ursache ist DNSSEC der Domain – dort gemeldet, hier kein zweiter Befund
+            foreach ($tlsa as $host => $records) {
+                $out->data("_25._tcp.{$host}", array_map(fn ($r) => "{$r['usage']} {$r['selector']} {$r['matching']} ".mb_strimwidth($r['data'], 0, 24, '…'), $records));
+            }
+
+            return $out->info('DANE ist veröffentlicht, wirkt aber nicht, weil die Domain-Zone nicht per DNSSEC validiert ist – siehe Prüfung DNSSEC.')
+                ->state(array_map(fn ($records) => array_map(fn ($r) => "{$r['usage']} {$r['selector']} {$r['matching']} {$r['data']}", $records), $tlsa));
         }
 
         $state = [];

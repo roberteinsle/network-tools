@@ -64,7 +64,9 @@ class DnssecTest extends TestCase
     #[Test]
     public function expiring_and_expired_signatures_are_reported(): void
     {
-        $this->assertSame(CheckStatus::Warning, $this->check($this->zone('20326', now()->addHours(30)->utc()->format('YmdHis')))->status());
+        // Warnung erst unter 6 Stunden Restlaufzeit
+        $this->assertSame(CheckStatus::Ok, $this->check($this->zone('20326', now()->addHours(30)->utc()->format('YmdHis')))->status());
+        $this->assertSame(CheckStatus::Warning, $this->check($this->zone('20326', now()->addHours(3)->utc()->format('YmdHis')))->status());
         $this->assertSame(CheckStatus::Error, $this->check($this->zone('20326', now()->subDay()->utc()->format('YmdHis')))->status());
     }
 }

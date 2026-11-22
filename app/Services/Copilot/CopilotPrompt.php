@@ -39,7 +39,7 @@ class CopilotPrompt
         $results = self::sorted($results);
         $focus = $check !== null
             ? array_values(array_filter($results, fn ($r) => $r['check'] === $check))
-            : array_values(array_filter($results, fn ($r) => $r['status'] !== CheckStatus::Ok->value));
+            : array_values(array_filter($results, fn ($r) => ! (CheckStatus::tryFrom($r['status']) ?? CheckStatus::Unknown)->isQuiet()));
 
         $lines = ["# Domain: {$domain}", ''];
         $lines[] = $check !== null

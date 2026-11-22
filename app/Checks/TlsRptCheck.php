@@ -17,6 +17,9 @@ class TlsRptCheck implements Check
         $records = array_values(array_filter($ctx->dns->txt('_smtp._tls.'.$ctx->name()), fn ($t) => preg_match('/^v=TLSRPTv1\s*;/i', trim($t))));
         $hasMtaSts = $ctx->dns->txt('_mta-sts.'.$ctx->name()) !== [];
 
+        if ($records === [] && ! $ctx->receivesMail()) {
+            return $out->notApplicable('Domain empfängt keine Mail (kein MX bzw. Null-MX) – TLS-RPT nicht relevant.')->state(['record' => null]);
+        }
         if ($records === []) {
             return ($hasMtaSts
                 ? $out->warning('Kein TLS-RPT, obwohl MTA-STS aktiv ist – Zustellprobleme bleiben unbemerkt.')

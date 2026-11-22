@@ -158,7 +158,7 @@
           <div><dt>A / AAAA</dt><dd>Domain and <code>www.</code> or your own web hosts, missing IPv6, private or reserved addresses.</dd></div>
           <div><dt>PTR / reverse DNS</dt><dd>PTR records of MX and outgoing mail server IPs, forward-confirmed reverse DNS (FCrDNS).</dd></div>
           <div><dt>SPF</dt><dd>Duplicate records, <code>+all</code> and <code>?all</code>, a recursive counter for the 10-DNS-lookup limit including <code>redirect</code>, void lookups.</dd></div>
-          <div><dt>DKIM</dt><dd>Known selectors for Microsoft 365, Google Workspace, Mailchimp, SendGrid, Mailjet, Brevo, HubSpot, Zoho, Mailgun, IONOS and Mailcow, plus custom selectors; AWS SES Easy DKIM tokens rated as a group with rotation reserve; RSA key length.</dd></div>
+          <div><dt>DKIM</dt><dd>Known selectors for Microsoft 365, Google Workspace, Mailchimp, SendGrid, Mailjet, Brevo, HubSpot, Zoho, Mailgun, IONOS and Mailcow, plus custom selectors; AWS SES Easy DKIM tokens rated as a group with rotation reserve; only providers in use count, so unused selectors never raise an alarm; RSA key length.</dd></div>
           <div><dt>DMARC</dt><dd>Policy, <code>sp</code>, <code>pct</code>, aggregate reports and the authorization record for external report receivers.</dd></div>
           <div><dt>MTA-STS</dt><dd>TXT record, policy fetched over HTTPS, mode, <code>max_age</code> and whether every MX host is covered.</dd></div>
           <div><dt>TLS-RPT</dt><dd>Record and report targets; a warning if MTA-STS is active without TLS reporting.</dd></div>

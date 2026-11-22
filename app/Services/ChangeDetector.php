@@ -49,7 +49,11 @@ class ChangeDetector
                     $old->status->isProblem() && ! $result->status->isProblem() => 'recovered',
                     default => 'status',
                 };
-                $changes[] = self::change($result, $old, $kind);
+                $change = self::change($result, $old, $kind);
+                // Wechsel zwischen „nicht relevant“ und OK/Hinweis ist kein Befund: nur protokollieren
+                $change['quiet'] = $kind === 'status'
+                    && in_array(CheckStatus::NotApplicable, [$old->status, $result->status], true);
+                $changes[] = $change;
             } elseif ($old->fingerprint !== $result->fingerprint) {
                 $change = self::change($result, $old, 'changed');
                 // IP-Wechsel (CDN, M365) nur protokollieren, außer an der Domain anders gewünscht

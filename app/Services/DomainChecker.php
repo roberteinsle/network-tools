@@ -35,7 +35,7 @@ class DomainChecker
         $outcomes = $this->evaluate($domain->loadMissing('customer'));
 
         $previous = $domain->latestRun()->with('results')->first();
-        $overall = CheckStatus::worst(array_map(fn (CheckOutcome $o) => $o->status(), $outcomes));
+        $overall = CheckStatus::overall(array_map(fn (CheckOutcome $o) => $o->status(), $outcomes));
 
         $run = DB::transaction(function () use ($domain, $outcomes, $overall, $trigger, $started, $t0) {
             $run = CheckRun::create([

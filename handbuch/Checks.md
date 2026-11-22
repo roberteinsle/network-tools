@@ -9,12 +9,17 @@ Every check run executes all enabled checks for one domain and stores one result
 | Warning | Should be fixed. |
 | Error | Broken or insecure. |
 | Not checkable | Technically impossible right now (timeout, resolver problem). Never triggers an alert. |
+| Not relevant | The check means nothing for this domain, e.g. MTA-STS for a domain that receives no mail. Never a problem, never an alert. |
 
-The status of a domain is the worst status of its checks. Checks can be switched off per domain (*Domains → Edit → Advanced → Disabled checks*).
+The status of a domain is the worst status of its checks, where **info and not relevant count as OK**: a domain is *Error* only if at least one check has an error, *Warning* if at least one has a warning. Info and not relevant never show up in the *Problems* column. Cloudflare's proxy IP ranges and name servers, which several checks take into account, are kept in one place (`App\Support\Cloudflare`).
+
+**Domains without mail:** a domain *receives no mail* if it has no MX or only a null MX (`0 .`). It *sends no mail* if it additionally has an SPF record of exactly `v=spf1 -all`. MTA-STS, TLS-RPT, DANE and PTR (without outgoing IPs) are *not relevant* for domains that receive no mail, DKIM for domains that send none. Checks can be switched off per domain (*Domains → Edit → Advanced → Disabled checks*).
 
 ## MX
 
-- Reads the MX records. A null MX (RFC 7505) is reported as info: the domain deliberately receives no mail.
+- Reads the MX records. A null MX (RFC 7505, `0 .`) as the only MX is OK: the domain deliberately receives no mail.
+- Error if a null MX stands next to other MX records (violates RFC 7505).
+- Warning if there is no MX at all (mail goes to the A/AAAA record, implicit MX). If that address is a Cloudflare proxy IP, the warning adds that mail runs into a timeout and recommends a null MX if the domain uses no mail.
 - Error if an MX points to an IP address instead of a host name, or if a MX host has no A/AAAA record.
 - Warning if an MX host is a CNAME (forbidden by RFC 2181).
 - Info if there is only one MX host (normal for hosted services such as Microsoft 365).
@@ -31,6 +36,7 @@ The status of a domain is the worst status of its checks. Checks can be switched
 - Checks the IPs of all MX hosts plus the outgoing mail server IPs entered on the domain.
 - Error if an outgoing IP has no PTR record (many receivers reject such mail); warning for MX IPs without PTR.
 - Verifies forward-confirmed reverse DNS (FCrDNS): the PTR name must resolve back to the IP. Warning if not, or if there are several PTR records.
+- Not relevant if the domain receives no mail and no outgoing IPs are entered. Outgoing IPs are always checked.
 
 ## SPF
 
@@ -39,10 +45,11 @@ The status of a domain is the worst status of its checks. Checks can be switched
 - Void lookups (queries without a result) are counted too: warning for any, error above the limit of 2.
 - Warning for `?all` or a missing `all` without `redirect`. `~all` and `-all` are OK.
 - Info for very long records that may exceed 512 bytes in a DNS answer.
+- Info if the `a` mechanism of the domain's own record only covers Cloudflare proxy IPs: those never send mail, so `a` is superfluous and costs a lookup.
 
 ## DKIM
 
-- DKIM selectors cannot be listed from DNS, so the check uses the known selectors of the providers picked on the customer or the domain, plus custom selectors:
+- DKIM selectors cannot be listed from DNS, so the check uses the known selectors of the providers picked on the customer or the domain, plus custom selectors. If an MX points to Exchange Online (`*.mail.protection.outlook.com`), the Microsoft 365 selectors are checked even if the provider is not picked:
 
 | Provider | Selectors |
 | --- | --- |
@@ -61,14 +68,18 @@ The status of a domain is the worst status of its checks. Checks can be switched
 
 - Providers with random selectors (Amazon SES, Postmark, your own mail server) are covered by **custom selectors** on the domain.
 - **AWS SES Easy DKIM** is recognized automatically: a selector whose CNAME points to `*.dkim.amazonses.com` (any region) is an SES token. SES creates three tokens per identity, but only one carries the active key; the others deliberately publish an empty `p=` as a reserve for automatic key rotation. SES tokens are therefore rated together, independent of the group they are listed in:
-  - at least one token with a valid key: OK, and every reserve token is shown as info *Rotation reserve (AWS SES)*,
+  - at least one token with a valid key: OK; reserve tokens are not reported,
   - no token with a valid key: warning.
   - The key length rules apply to the active tokens as usual (e.g. a warning for an identity with RSA 1024 bit).
 - An empty `p=` on any other selector (a normal TXT record, no SES CNAME) is still a warning *key revoked*.
 - Info messages do not lower the status of an otherwise valid DKIM setup: as soon as there is a valid key, only warnings and errors count.
-- Error if no valid key is found for a provider or for the custom selectors (SES tokens excluded, see below). Key length: error below 1024 bit RSA, warning below 2048 bit.
+- **Only providers in use count.** Missing selectors of a picked provider that has no key are not reported; a provider is in use when one of its selectors has a key.
+- Error if the domain sends mail and **no** provider or custom selector has a valid key.
+- Error if an MX points to Exchange Online but neither `selector1` nor `selector2` has a valid key (Exchange Online then does not sign).
+- Not relevant for domains that send no mail (SPF exactly `v=spf1 -all` and no MX or a null MX).
+- Key length: error below 1024 bit RSA, warning below 2048 bit.
 - Info for Microsoft 365 if only one of the two rotation selectors is active.
-- Info if no provider and no selector is configured.
+- Info if no provider and no selector is configured (and the MX is not Exchange Online).
 
 ## DMARC
 
@@ -79,7 +90,7 @@ The status of a domain is the worst status of its checks. Checks can be switched
 
 ## MTA-STS
 
-- Optional: info if not set up.
+- Optional: info if not set up; not relevant if the domain receives no mail.
 - Checks the `_mta-sts` TXT record (exactly one, with `id=`) and fetches the policy from `https://mta-sts.<domain>/.well-known/mta-sts.txt` (no redirects allowed, `version: STSv1`, served as `text/plain`).
 - Mode `enforce` is OK, `testing` is info, `none` a warning.
 - Warning for a very short `max_age` (below one week).
@@ -87,7 +98,7 @@ The status of a domain is the worst status of its checks. Checks can be switched
 
 ## TLS-RPT
 
-- Optional, but a warning if MTA-STS is active without TLS-RPT.
+- Optional, but a warning if MTA-STS is active without TLS-RPT. Not relevant if the domain receives no mail.
 - Error for several records, missing `rua=` or invalid report targets (`mailto:` or `https:` expected).
 
 ## BIMI
@@ -100,11 +111,13 @@ The status of a domain is the worst status of its checks. Checks can be switched
 ## DNSSEC
 
 - Checks the DS record at the parent, the DNSKEYs in the zone and validation via the AD flag of the configured resolvers.
-- Warning if the domain is unsigned, or signed without a DS at the registrar (no chain of trust).
+- Info if the domain is unsigned (DNSSEC is optional).
+- Warning *DNSSEC incomplete: DS record at the registrar is missing* if the zone is signed (DNSKEY/RRSIG) but the parent has no DS.
+- If the domain's zone is not validated but MX hosts publish TLSA records (DANE), this is reported here, not as a separate DANE problem: DANE only works with a validated zone. An unsigned domain with DANE is then a warning.
 - Error for SERVFAIL (likely a bogus signature: the domain is unreachable for validating resolvers) or a DS without DNSKEYs.
 - Warning for deprecated algorithms.
 - Error if no DS record at the parent matches a DNSKEY of the zone (compared by key tag, computed per RFC 4034); info if only some DS records match (e.g. during a key rollover).
-- **Signature expiry:** the RRSIGs over SOA and DNSKEY are checked. Error if a signature has expired, warning if it expires within 72 hours. The earliest expiry is shown in the details.
+- **Signature expiry:** the RRSIGs over SOA and DNSKEY are checked. Error if a signature has expired, warning if it expires within 6 hours. The earliest expiry is shown in the details. Zones on Cloudflare name servers (`*.ns.cloudflare.com`) get no expiry warning, because Cloudflare signs on the fly with short validity; an expired signature is still an error.
 
 ## Nameservers (NS / SOA)
 
@@ -166,8 +179,9 @@ SRV records (RFC 2782) tell clients where a service runs: `_service._protocol.do
 
 ## DANE (TLSA)
 
-- Looks up `_25._tcp.<mx>` TLSA records for every MX host (RFC 7672). Optional: info if no MX host has TLSA.
-- Warning if the TLSA records or the domain's MX records are not DNSSEC-validated (senders then ignore DANE), and if some MX hosts have TLSA and others do not.
+- Looks up `_25._tcp.<mx>` TLSA records for every MX host (RFC 7672). Optional: info if no MX host has TLSA. Not relevant if the domain receives no mail.
+- If the domain's own zone is not DNSSEC-validated, DANE only shows info and refers to the DNSSEC check, which reports the problem (one finding, not two).
+- Warning if the TLSA records of an MX host are not DNSSEC-validated (senders then ignore DANE), and if some MX hosts have TLSA and others do not.
 - Warning for usage 0 or 1 (PKIX), which RFC 7672 does not intend for SMTP; `3 1 1` with `2 1 1` as a fallback is recommended. Error for invalid parameters.
 - If *Check MX STARTTLS certificates* is enabled on the domain (needs outgoing port 25), the certificate of each MX is compared with its TLSA records: usage 3 against the server certificate, usage 2 against the chain. Error if no record matches or the host offers no STARTTLS, because DANE-validating senders will not deliver mail then. The STARTTLS connection is shared with the MX certificate check.
 - If the TLSA query fails for a host (Exchange Online answers with SERVFAIL), it is reported as *not checkable* only if other hosts use DANE.

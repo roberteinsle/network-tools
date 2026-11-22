@@ -124,4 +124,26 @@ class DomainCheckerTest extends TestCase
         self::$state = ['record' => 'a'];
         parent::tearDown();
     }
+
+    #[Test]
+    public function hints_and_not_applicable_do_not_affect_overall_status_or_alert(): void
+    {
+        self::$state = ['record' => 'a'];
+        $domain = Domain::create(['name' => 'example.com']);
+
+        self::$status = CheckStatus::Info;
+        $run = app(DomainChecker::class)->run($domain);
+        $this->assertSame(CheckStatus::Ok, $run->status);
+        $this->assertSame(CheckStatus::Ok, $domain->fresh()->last_status);
+
+        // Hinweis → nicht relevant: protokolliert, aber still (keine Mail)
+        self::$status = CheckStatus::NotApplicable;
+        $run = app(DomainChecker::class)->run($domain->fresh());
+        $this->assertSame(CheckStatus::Ok, $run->status);
+        $this->assertTrue($run->changes[0]['quiet']);
+        $this->assertNull($run->notified_at);
+        Mail::assertNothingSent();
+
+        self::$status = CheckStatus::Ok;
+    }
 }
