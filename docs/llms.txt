@@ -13,7 +13,7 @@
 - MTA-STS: TXT record, HTTPS policy, mode, max_age, every MX host covered by the policy
 - TLS-RPT: record and report targets; warning if MTA-STS is active without TLS-RPT
 - BIMI: record, SVG Tiny PS logo up to 32 KB, DMARC enforcement requirement, VMC/CMC
-- DNSSEC: DS at the parent, DNSKEY, validation via the AD flag, SERVFAIL detection, deprecated algorithms
+- DNSSEC: DS at the parent, DNSKEY, DS matched to DNSKEY by key tag, RRSIG expiry, validation via the AD flag, SERVFAIL detection, deprecated algorithms
 - Name servers (NS/SOA): delegation and glue read directly from a parent-zone (registry) server, NXDOMAIN at the registry, missing glue for in-domain name servers; each authoritative server queried directly with response times; lame delegation, SOA serial consistency (info only for multi-provider setups), NS list vs delegation, same /24 network, SOA timer sanity
 - CAA: allowed CAs (issue/issuewild), lookup climbs to parent names, issue ";" warning, unknown critical tags, iodef
 - TLS certificate (HTTPS): trust, host name, expiry for domain, www and mta-sts; outdated TLS versions
@@ -25,7 +25,10 @@
 
 ## Tools
 
-- DNS lookup: A and AAAA of any host name at every authoritative name server of its zone and at ten public resolvers (Google, Cloudflare, Quad9, Cisco OpenDNS, AdGuard, CleanBrowsing, Control D, Comodo, Lumen/Level 3, Yandex); nothing stored
+- Tools (on demand, nothing stored): MX lookup with priority; IP (A/AAAA at every authoritative name server and at ten public resolvers: Google, Cloudflare, Quad9, Cisco OpenDNS, AdGuard, CleanBrowsing, Control D, Comodo, Lumen/Level 3, Yandex); name servers with SOA serial; SOA fields; CNAME chain; TXT records with type; CAA with inheritance
+- Mail security tools: SPF, DMARC, DKIM (known selectors per provider or custom), MTA-STS, TLS-RPT, DANE for any domain, same rules as the monitoring
+- Reverse DNS: PTR for an IP or all IPs of a host name, with FCrDNS
+- Troubleshooting: trace from the root servers (where resolution breaks), DNSSEC signatures (RRSIG) with validity, DS at the parent matched against the DNSKEYs
 
 - AI copilot (optional): AI models configured in the backend (Anthropic Claude via the official SDK, OpenAI, Google Gemini, OpenRouter, OpenAI-compatible such as Ollama or Mistral; API keys encrypted); recommendations per finding or for all findings, answers cached 7 days; results are sent to the provider only on request
 - Export for AI chat: instructions plus the full current state as text or Markdown file for pasting into any AI chat

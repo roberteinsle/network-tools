@@ -4,6 +4,8 @@ namespace App\Checks;
 
 use App\Enums\CheckType;
 use App\Support\Dns\DnsException;
+use App\Support\Dns\Dnssec;
+use NetDNS2\RR;
 
 /**
  * DNSSEC: DS beim Parent (Registrar), DNSKEY in der Zone und Validierung über das
@@ -55,14 +57,51 @@ class DnssecCheck implements Check
             : $out->warning('DS und DNSKEY vorhanden, aber der Resolver bestätigt die Validierung nicht (kein AD-Flag).');
 
         foreach ($ds as $rr) {
-            if (in_array($rr->algorithm->value, [1, 3, 5, 6, 7, 12], true)) {
+            if (Dnssec::isDeprecated($rr->algorithm->value)) {
                 $out->warning("Veralteter Algorithmus {$rr->algorithm->value} im DS (Key-Tag {$rr->keytag}).");
             }
         }
+
+        // DS beim Parent muss zu einem DNSKEY der Zone passen (gleicher Key-Tag)
+        $keyTags = array_map(fn ($rr) => Dnssec::keyTag($rr), $keys);
+        $matching = array_filter($ds, fn ($rr) => in_array((int) $rr->keytag, $keyTags, true));
+        if ($matching === []) {
+            $out->error('Kein DS-Record passt zu einem DNSKEY der Zone (Key-Tags DS: '.implode(', ', array_map(fn ($rr) => $rr->keytag, $ds)).'; DNSKEY: '.implode(', ', $keyTags).') – Vertrauenskette gebrochen.');
+        } elseif (count($matching) < count($ds)) {
+            $out->info('Nicht jeder DS-Record hat einen passenden DNSKEY (z. B. während eines Schlüsselwechsels).');
+        }
+
+        // Ablauf der Signaturen (RRSIG über SOA und DNSKEY)
+        $this->checkSignatures($out, [...$soa->ofType('RRSIG'), ...$ctx->dns->query($name, 'DNSKEY', true)->ofType('RRSIG')]);
 
         $tags = array_map(fn ($rr) => $rr->keytag, $ds);
         sort($tags);
 
         return $out->state(['status' => $soa->authenticated ? 'secure' : 'unvalidated', 'ds' => $tags]);
+    }
+
+    /** @param  list<RR>  $sigs */
+    private function checkSignatures(CheckOutcome $out, array $sigs): void
+    {
+        $earliest = null;
+        foreach ($sigs as $sig) {
+            $exp = Dnssec::time((string) $sig->sigexp);
+            if ($exp !== null && ($earliest === null || $exp->lt($earliest[0]))) {
+                $earliest = [$exp, (string) $sig->typecovered];
+            }
+        }
+        if ($earliest === null) {
+            return;
+        }
+
+        [$exp, $type] = $earliest;
+        $hours = now()->diffInHours($exp, false);
+        $out->data('Signaturen (RRSIG) gültig bis', $exp->timezone(config('app.timezone'))->format('d.m.Y H:i')." ({$type})");
+
+        if ($hours < 0) {
+            $out->error("RRSIG über {$type} ist abgelaufen – validierende Resolver lehnen die Zone ab.");
+        } elseif ($hours < 72) {
+            $out->warning('RRSIG über '.$type.' läuft in '.max(1, (int) $hours).' Stunden ab – wird die Zone nicht neu signiert, fällt sie aus.');
+        }
     }
 }

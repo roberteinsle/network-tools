@@ -25,7 +25,7 @@ In Coolify, run them in the terminal of the `app` container.
 
 ## Build information
 
-The backend shows the deployed build next to its title: release number, commit and commit date. The GitHub Action fills them in at build time and passes them to the image as build arguments:
+The backend shows the deployed build below its title (only after login): release number, commit and commit date. The GitHub Action fills them in at build time and passes them to the image as build arguments:
 
 | Build argument / env | Value |
 | --- | --- |
@@ -38,7 +38,7 @@ The checkout in the workflow uses `fetch-depth: 0` so the tags are available. In
 ## Network notes
 
 - The STARTTLS check of MX hosts and the DANE certificate comparison need **outgoing port 25**.
-- The name server check and the DNS lookup query each authoritative server directly over UDP/TCP port 53. The DNS lookup also asks ten public resolvers directly; outgoing port 53 to them must be allowed.
+- The name server check and the tools query authoritative servers directly over UDP/TCP port 53. The IP tool also asks ten public resolvers, and the trace tool starts at the root servers; outgoing port 53 to them must be allowed.
 - Many RBLs block public resolvers. Run your own resolver (e.g. Unbound) and enter it under *Settings → DNS → Resolvers for blacklists*.
 - The resolvers for the other checks must validate DNSSEC.
 

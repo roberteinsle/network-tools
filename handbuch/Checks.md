@@ -103,6 +103,8 @@ The status of a domain is the worst status of its checks. Checks can be switched
 - Warning if the domain is unsigned, or signed without a DS at the registrar (no chain of trust).
 - Error for SERVFAIL (likely a bogus signature: the domain is unreachable for validating resolvers) or a DS without DNSKEYs.
 - Warning for deprecated algorithms.
+- Error if no DS record at the parent matches a DNSKEY of the zone (compared by key tag, computed per RFC 4034); info if only some DS records match (e.g. during a key rollover).
+- **Signature expiry:** the RRSIGs over SOA and DNSKEY are checked. Error if a signature has expired, warning if it expires within 72 hours. The earliest expiry is shown in the details.
 
 ## Nameservers (NS / SOA)
 

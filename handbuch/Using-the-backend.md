@@ -2,7 +2,7 @@
 
 The backend is built with Filament and is called **Network-Tools**. Its interface is in German; this page uses English names with the German label in brackets where helpful.
 
-Next to the title, in smaller type, the backend shows the deployed build: the latest release number, the short commit hash and the commit date, for example `v1.0.0 · 19333b3 · 17.11.2026`. The image gets these values at build time (see [Operations](Operations.md#build-information)).
+Below the title, in smaller type, the backend shows the deployed build (only after login): the latest release number, the short commit hash and the commit date, for example `v1.0.0 · 19333b3 · 17.11.2026`. The image gets these values at build time (see [Operations](Operations.md#build-information)).
 
 ## Dashboard
 
@@ -38,18 +38,44 @@ Customers group domains, which is useful for agencies and IT service providers.
 | Additional recipients | Alert recipients for this domain only. |
 | Notes | Free text. |
 
-The domain list shows status, number of problems, customer and the time of the last check, with filters for status, customer and active. **Check now** runs a check immediately, for one domain or as a bulk action.
+The domain list shows status, number of problems, customer and the time of the last check, with filters for status, customer and active. By default it is sorted by customer, the customer with the most domains first, and within each customer by domain name A–Z; domains without a customer come last. Clicking a column header sorts by that column instead. **Check now** runs a check immediately, for one domain or as a bulk action.
 
 The domain page shows the current result of every check and the history of its check runs. Results are sorted by severity: errors first, then warnings, not checkable, info and OK; within the same severity they keep the check order. The details of every check that is not OK are expanded, and their messages are sorted the same way. OK results stay collapsed. Check runs show results the same way. Every result that is not OK has a **KI-Empfehlung** button, and the header offers **KI-Copilot** and **Export für KI-Chat** (see [AI copilot](AI-copilot.md)).
 
-## DNS lookup (Werkzeuge → DNS-Lookup)
+## Tools
 
-Shows which IP addresses a host name resolves to, and nothing else. Nothing is stored and no mail is sent.
+Four menu groups contain tools that query any name on demand. They store nothing and send no mail. Every tool has its own page at `/admin/tools/<tool>`; append `?q=<name>` to open it with the name filled in. Internationalized names are converted to Punycode. Answers come from the resolvers configured in the settings unless noted otherwise.
 
-- **Host name:** any host name, e.g. `www.example.com` (no `http://`, no path). Internationalized names are converted to Punycode.
-- **Authoritative name servers:** the zone of the host name is found by walking up its labels until a name with NS records is reached. Every name server of that zone is asked directly (without recursion). The table shows each name server with the address that was asked, the IPv4 (A) and IPv6 (AAAA) addresses it returns, and a note such as `CNAME → target`, `NXDOMAIN` or a timeout.
-- **Public DNS resolvers:** the same question goes to the ten most widely used public resolvers (Google Public DNS, Cloudflare, Quad9, Cisco OpenDNS, AdGuard DNS, CleanBrowsing, Control D, Comodo Secure DNS, Lumen/Level 3, Yandex DNS). Their answers may come from their cache, so a recent change can show up here later than at the name servers.
-- The page can be opened with a host name filled in: `/admin/dns-lookup?host=www.example.com`.
+### Werkzeuge (DNS records)
+
+| Tool | Input | Shows |
+| --- | --- | --- |
+| **MX-Lookup** | Domain | Mail servers sorted by priority (lower number is preferred) with their IPv4 and IPv6 addresses and the TTL. A null MX (`0 .`) is marked; without MX records, mail goes to the domain's A/AAAA record (implicit MX). |
+| **IP** | Host name | IPv4 (A) and IPv6 (AAAA) addresses at every authoritative name server of the zone (asked directly, without recursion) and at the ten most widely used public resolvers: Google Public DNS, Cloudflare, Quad9, Cisco OpenDNS, AdGuard DNS, CleanBrowsing, Control D, Comodo Secure DNS, Lumen/Level 3 and Yandex DNS. Public resolvers may answer from their cache, so a recent change can show up there later. Notes show a `CNAME`, `NXDOMAIN` or a timeout. |
+| **Nameserver** | Domain | The name servers responsible for the zone with their IPv4 and IPv6 addresses, and the SOA serial each server returns when asked directly. The status is an error if a server does not answer authoritatively. |
+| **SOA** | Domain | Zone information: primary name server (MNAME), admin address (RNAME, shown as an email address), serial, refresh, retry, expire, minimum (negative TTL) and the TTL of the SOA, each with its meaning. For a subdomain, the SOA of its zone is shown. |
+| **CNAME** | Host name | The alias target and the full CNAME chain (up to ten steps, loops are detected), then the IPv4 and IPv6 addresses of the final target. |
+| **TXT** | Host name | All TXT records with their type (SPF, DMARC, DKIM, MTA-STS, TLS-RPT, BIMI, Google, Microsoft 365, Meta and Apple verification, other) and TTL. |
+| **CAA** | Host name | Which certificate authorities may issue certificates (`issue`), wildcard certificates (`issuewild`) and where violations are reported (`iodef`). CAA is inherited: if the name itself has no CAA, the nearest parent name with CAA applies, and the page says so. Without any CAA, every CA may issue. |
+
+### Mail-Sicherheit (mail security)
+
+**SPF**, **DMARC**, **DKIM**, **MTA-STS**, **TLS-RPT** and **DANE** run exactly the same check as the monitoring (see [Checks](Checks.md)) for any domain, through `DomainChecker::evaluate()`. The result looks like the current state on a domain page, including the **KI-Empfehlung** button.
+
+- **DKIM:** selectors cannot be read from DNS, so at least one provider (with its known selectors, e.g. Microsoft 365: `selector1`/`selector2`) or a custom selector is required.
+- **DANE:** optionally compares the TLSA records with the STARTTLS certificates of the MX hosts (needs outgoing port 25).
+
+### Reverse-DNS
+
+**PTR** takes an IP address (IPv4 or IPv6) or a host name; for a host name, every address it resolves to is checked. For each IP it shows the reverse name (`…in-addr.arpa` / `…ip6.arpa`), the PTR records, the addresses the PTR names resolve to, and whether forward-confirmed reverse DNS (FCrDNS) holds. A missing PTR is an error, a PTR whose name does not resolve back to the IP a warning.
+
+### Fehlersuche (troubleshooting)
+
+| Tool | Input | Shows |
+| --- | --- | --- |
+| **Trace** | Host name | Resolution from the root servers downwards, like `dig +trace`: each level is asked without recursion for the A record and the referral is followed (glue from the answer, otherwise the configured resolver resolves the name server). One row per level with the server asked, the answer (referral with name servers, final records, NXDOMAIN or NODATA) and the response time. Up to three servers per level are tried. The row where it stops is marked as an error: no server of a level answers, a referral does not lead deeper, or the name servers' addresses cannot be resolved. An answer without the AA flag is flagged as lame delegation. |
+| **DNSSEC** | Host name and record type (A, AAAA, MX, TXT, NS, SOA, DNSKEY, CAA) | The records and their signatures (RRSIG) from a query with the DO bit: covered type, algorithm, key tag, signer, valid from and until. Expired or not yet valid signatures are errors, signatures expiring within 72 hours warnings. The AD flag shows whether the resolver validated the answer. |
+| **DS** | Domain | The DS records of the zone at the parent (key tag, algorithm, digest type, digest) and the DNSKEYs of the zone (key tag computed per RFC 4034, KSK or ZSK, flags, algorithm). Each DS must match a DNSKEY; a KSK without DS is a warning, a DS without matching DNSKEY an error. |
 
 ## Check runs (Prüfläufe)
 

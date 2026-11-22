@@ -34,7 +34,7 @@ A scheduler queues due domains every five minutes, and a worker runs all enabled
 - **Alerts on real changes only:** a mail goes out when a check gets worse, is fixed or its records change. Timeouts and resolver hiccups never trigger an alert.
 - **Built for many domains:** group domains by customer, inherit DKIM providers, and send alerts to global, customer and domain recipients, with a mail level per customer (all changes, from warning, errors only, none).
 - **AI copilot:** recommendations for every error, warning and hint from Claude, ChatGPT, Gemini, OpenRouter or a self-hosted model – or export the current state for any AI chat.
-- **DNS lookup:** see which IPs a host name resolves to at its authoritative name servers and at the ten most widely used public resolvers.
+- **Tools on demand:** DNS records (MX, IP, name servers, SOA, CNAME, TXT, CAA), mail security (SPF, DMARC, DKIM, MTA-STS, TLS-RPT, DANE), reverse DNS and troubleshooting (trace from the root servers, RRSIG signatures, DS) for any name, without adding it.
 - **Everything in the backend:** SMTP, recipients, thresholds, intervals, resolvers and the Spamhaus DQS key are configured in the UI. Secrets are stored encrypted.
 
 ## Checks

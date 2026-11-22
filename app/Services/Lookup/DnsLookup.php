@@ -6,7 +6,6 @@ use App\Enums\PublicResolver;
 use App\Support\Dns\DnsException;
 use App\Support\Dns\DnsResolver;
 use App\Support\Dns\NameserverProbe;
-use NetDNS2\RR;
 
 /**
  * Löst einen Hostnamen bei den autoritativen Nameservern seiner Zone und bei den
@@ -14,14 +13,17 @@ use NetDNS2\RR;
  */
 class DnsLookup
 {
-    public function __construct(private readonly NameserverProbe $probe) {}
+    public function __construct(
+        private readonly NameserverProbe $probe,
+        private readonly ZoneFinder $zones,
+    ) {}
 
     /**
      * @return array{zone:?string, authoritative:list<array>, public:list<array>}
      */
     public function lookup(string $host): array
     {
-        [$zone, $nameservers] = $this->findZone($host);
+        [$zone, $nameservers] = $this->zones->find($host);
 
         $authoritative = [];
         foreach ($nameservers as $ns) {
@@ -45,7 +47,7 @@ class DnsLookup
     }
 
     /** @return array{a:list<string>, aaaa:list<string>, cname:?string, error:?string} */
-    private function ask(DnsResolver $dns, string $host): array
+    public function ask(DnsResolver $dns, string $host): array
     {
         $result = ['a' => [], 'aaaa' => [], 'cname' => null, 'error' => null];
 
@@ -74,7 +76,7 @@ class DnsLookup
         return $result;
     }
 
-    private static function shortError(DnsException $e): string
+    public static function shortError(DnsException $e): string
     {
         return match (true) {
             $e->rcode === 2 => 'SERVFAIL',
@@ -82,48 +84,5 @@ class DnsLookup
             stripos($e->getMessage(), 'timeout') !== false => 'Keine Antwort (Zeitüberschreitung)',
             default => mb_strimwidth($e->getMessage(), 0, 80, '…'),
         };
-    }
-
-    /**
-     * Sucht die Zone (nächstes Label mit NS-Records) und die Adressen ihrer Nameserver.
-     *
-     * @return array{0:?string, 1:list<array{name:string, ips:list<string>}>}
-     */
-    private function findZone(string $host): array
-    {
-        $dns = $this->probe->configured();
-        $labels = explode('.', $host);
-
-        for ($i = 0; $i < count($labels) - 1; $i++) {
-            $name = implode('.', array_slice($labels, $i));
-            try {
-                $records = array_filter(
-                    $dns->query($name, 'NS')->ofType('NS'),
-                    fn (RR $rr) => strcasecmp(rtrim((string) $rr->name, '.'), $name) === 0,
-                );
-            } catch (DnsException) {
-                continue;
-            }
-            if ($records === []) {
-                continue;
-            }
-
-            $nameservers = [];
-            foreach ($records as $rr) {
-                $ns = rtrim(strtolower((string) $rr->nsdname), '.');
-                try {
-                    $ips = $dns->a($ns);
-                    $ips = $ips !== [] ? $ips : $dns->aaaa($ns);
-                } catch (DnsException) {
-                    $ips = [];
-                }
-                $nameservers[] = ['name' => $ns, 'ips' => $ips];
-            }
-            usort($nameservers, fn ($a, $b) => $a['name'] <=> $b['name']);
-
-            return [$name, $nameservers];
-        }
-
-        return [null, []];
     }
 }

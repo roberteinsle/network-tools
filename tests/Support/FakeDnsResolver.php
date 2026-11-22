@@ -63,6 +63,14 @@ class FakeDnsResolver extends DnsResolver
             return new DnsAnswer([], $this->authenticated, false, false, $toRr($this->referrals[$key]['authority']), $toRr($this->referrals[$key]['additional']));
         }
         $lines = $this->zone[$key] ?? [];
+        if ($dnssec) {
+            // DO-Bit: passende Signaturen (RRSIG über den gefragten Typ) mitliefern
+            foreach ($this->zone[strtolower(rtrim($name, '.')).'|RRSIG'] ?? [] as $sig) {
+                if (strtoupper(preg_split('/\s+/', $sig)[4] ?? '') === strtoupper($type)) {
+                    $lines[] = $sig;
+                }
+            }
+        }
 
         return new DnsAnswer(array_map(fn ($l) => RR::fromString($l), $lines), $this->authenticated, false, $this->authoritative);
     }

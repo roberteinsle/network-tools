@@ -39,6 +39,7 @@ use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use UnitEnum;
 
@@ -201,7 +202,8 @@ class DomainResource extends Resource
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with(['customer', 'latestRun.results']))
-            ->defaultSort('name')
+            // Standard: Kunden mit den meisten Domains zuerst, innerhalb des Kunden Domainname A–Z
+            ->defaultSort(fn (Builder $query): Builder => self::sortByCustomerSize($query))
             ->columns([
                 TextColumn::make('name')
                     ->label('Domain')
@@ -260,6 +262,14 @@ class DomainResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function sortByCustomerSize(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('(select count(*) from domains as d2 where d2.customer_id = domains.customer_id) desc')
+            ->orderByRaw('(select customers.name from customers where customers.id = domains.customer_id) asc')
+            ->orderBy('domains.name');
     }
 
     public static function checkNowAction(): Action
