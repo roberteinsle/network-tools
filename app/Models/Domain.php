@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CheckStatus;
 use App\Enums\CheckType;
 use App\Enums\DkimProvider;
+use App\Enums\DnsProvider;
 use App\Enums\NotifyLevel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,7 +19,7 @@ class Domain extends Model
     use HasFactory;
 
     protected $fillable = [
-        'customer_id', 'name', 'active', 'check_interval_minutes', 'inherit_dkim_providers',
+        'customer_id', 'registrar', 'dns_provider', 'name', 'active', 'check_interval_minutes', 'inherit_dkim_providers',
         'dkim_providers', 'dkim_selectors', 'web_hosts', 'extra_ips', 'check_mx_tls', 'notify_ip_changes',
         'disabled_checks', 'notification_emails', 'notes', 'srv_services',
     ];
@@ -113,7 +114,43 @@ class Domain extends Model
         return $hosts !== [] ? array_values(array_unique($hosts)) : [$this->name, 'www.'.$this->name];
     }
 
-    /** @return list<string> */
+    /** Registrar: eingetragen, sonst laut RDAP aus dem letzten Prüflauf (z. B. nicht bei .de). */
+    public function registrarInfo(): ?string
+    {
+        if (filled($this->registrar)) {
+            return $this->registrar;
+        }
+        $rdap = $this->latestResult(CheckType::DomainExpiry)?->details['data']['Registrar'] ?? null;
+
+        return filled($rdap) && $rdap !== '–' ? "{$rdap} (laut RDAP)" : null;
+    }
+
+    /**
+     * DNS-Verwaltung: eingetragen, sonst erkannt an den Nameservern des letzten Prüflaufs.
+     * Weicht der Eintrag von den Nameservern ab (z. B. nach einem Umzug), steht das dabei.
+     */
+    public function dnsProviderInfo(): ?string
+    {
+        $nameservers = $this->latestResult(CheckType::Ns)?->state['ns'] ?? [];
+        $detected = array_map(fn (DnsProvider $p) => $p->label(), DnsProvider::detect($nameservers));
+
+        if (filled($this->dns_provider)) {
+            $matches = $detected === [] || in_array(mb_strtolower($this->dns_provider), array_map('mb_strtolower', $detected), true);
+
+            return $matches ? $this->dns_provider : "{$this->dns_provider} (laut Nameservern: ".implode(' + ', $detected).')';
+        }
+        if ($detected !== []) {
+            return implode(' + ', $detected).' (erkannt)';
+        }
+
+        return $nameservers !== [] ? 'nicht erkannt ('.implode(', ', $nameservers).')' : null;
+    }
+
+    private function latestResult(CheckType $type): ?CheckResult
+    {
+        return $this->latestRun?->results->first(fn (CheckResult $r) => $r->check === $type);
+    }
+
     /**
      * Empfänger einer Alarm-Mail: globale Adressen und Adressen der Domain immer,
      * Adressen des Kunden nur, wenn dessen Benachrichtigungsstufe die Meldung umfasst.

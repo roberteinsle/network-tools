@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Domains;
 use App\Enums\CheckStatus;
 use App\Enums\CheckType;
 use App\Enums\DkimProvider;
+use App\Enums\DnsProvider;
 use App\Enums\SrvService;
 use App\Filament\Resources\Domains\Pages\CreateDomain;
 use App\Filament\Resources\Domains\Pages\EditDomain;
@@ -92,6 +93,18 @@ class DomainResource extends Resource
                         ->createOptionForm([
                             TextInput::make('name')->label('Name')->required()->maxLength(255),
                         ]),
+                    TextInput::make('registrar')
+                        ->label('Registrar')
+                        ->placeholder('z. B. Hetzner, Artfiles, Cloudflare')
+                        ->helperText('Bei wem die Domain gekauft wurde. Leer: laut RDAP, sofern die TLD das liefert (nicht bei .de).')
+                        ->datalist(DnsProvider::labels())
+                        ->maxLength(100),
+                    TextInput::make('dns_provider')
+                        ->label('DNS-Verwaltung')
+                        ->placeholder('automatisch aus den Nameservern')
+                        ->helperText('Nur nötig, wenn die Nameserver eigene Namen haben (z. B. ns1.kunde.de).')
+                        ->datalist(DnsProvider::labels())
+                        ->maxLength(100),
                     Toggle::make('active')
                         ->label('Aktiv (wird automatisch geprüft)')
                         ->default(true),
@@ -178,6 +191,12 @@ class DomainResource extends Resource
                 ->schema([
                     TextEntry::make('last_status')->label('Status')->badge()->placeholder('noch nicht geprüft'),
                     TextEntry::make('customer.name')->label('Kunde')->placeholder('–'),
+                    TextEntry::make('registrar_info')->label('Registrar')
+                        ->state(fn (Domain $record) => $record->registrarInfo())
+                        ->placeholder('nicht hinterlegt'),
+                    TextEntry::make('dns_provider_info')->label('DNS-Verwaltung')
+                        ->state(fn (Domain $record) => $record->dnsProviderInfo())
+                        ->placeholder('noch nicht geprüft'),
                     TextEntry::make('last_checked_at')->label('Zuletzt geprüft')->since()->dateTimeTooltip('d.m.Y H:i')->placeholder('–'),
                     TextEntry::make('next_check_at')->label('Nächste Prüfung')
                         ->state(fn (Domain $record) => $record->active ? ($record->next_check_at ?? now()) : null)

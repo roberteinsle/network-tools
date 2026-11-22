@@ -149,4 +149,30 @@ class PanelTest extends TestCase
             ->callAction('create', ['name' => 'Spamhaus', 'zone' => 'zen.spamhaus.org', 'type' => 'ip', 'enabled' => true])
             ->assertHasActionErrors(['zone']);
     }
+
+    #[Test]
+    public function overview_shows_registrar_and_dns_provider(): void
+    {
+        $result = fn (string $check, array $state, array $data = []) => CheckResult::create([
+            'check_run_id' => $this->run->id, 'domain_id' => $this->domain->id, 'check' => $check, 'status' => 'ok',
+            'summary' => 'ok', 'fingerprint' => 'x', 'state' => $state, 'details' => ['messages' => [], 'data' => $data],
+        ]);
+        $result('ns', ['ns' => ['ada.ns.cloudflare.com', 'bob.ns.cloudflare.com']]);
+        $result('domain_expiry', ['rdap' => true], ['Registrar' => 'Cloudflare, Inc.']);
+
+        // automatisch: Registrar laut RDAP, DNS-Verwaltung aus den Nameservern
+        $this->get("/admin/domains/{$this->domain->id}")
+            ->assertSee('Cloudflare, Inc. (laut RDAP)')
+            ->assertSee('Cloudflare (erkannt)');
+
+        // eingetragen hat Vorrang; Abweichung von den Nameservern wird genannt
+        $this->domain->update(['registrar' => 'Artfiles', 'dns_provider' => 'Hetzner']);
+        $this->get("/admin/domains/{$this->domain->id}")
+            ->assertSee('Artfiles')
+            ->assertDontSee('(laut RDAP)')
+            ->assertSee('Hetzner (laut Nameservern: Cloudflare)');
+
+        $this->domain->update(['dns_provider' => 'cloudflare']);
+        $this->assertSame('cloudflare', $this->domain->fresh()->dnsProviderInfo());
+    }
 }

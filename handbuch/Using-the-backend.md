@@ -27,6 +27,8 @@ Customers group domains, which is useful for agencies and IT service providers.
 | --- | --- |
 | Domain name | Normalized automatically: lower case, no trailing dot, internationalized names as Punycode. |
 | Customer | Optional. A new customer can be created right from the field. |
+| Registrar | Where the domain was bought (e.g. Hetzner, Artfiles, Cloudflare). Empty: the registrar from RDAP is shown, if the TLD offers RDAP (not for `.de`). |
+| DNS management (*DNS-Verwaltung*) | Where the DNS zone is managed. Empty: detected from the name servers. Only needed for name servers with your own names (e.g. `ns1.customer.com`). |
 | Active | Only active domains are checked automatically. |
 | Check interval | Hourly, every 3, 6 or 12 hours, or daily. New domains use the default from the settings. |
 | DKIM | Inherit providers from the customer, or pick providers for this domain; plus custom selectors. |
@@ -40,6 +42,8 @@ Customers group domains, which is useful for agencies and IT service providers.
 | Notes | Free text. |
 
 The domain list shows status, number of problems, customer and the time of the last check, with filters for status, customer and active. By default it is sorted by customer, the customer with the most domains first, and within each customer by domain name A–Z; domains without a customer come last. Clicking a column header sorts by that column instead. **Check now** runs a check immediately, for one domain or as a bulk action.
+
+The overview on the domain page shows the **registrar** and the **DNS management**. The registrar is the value entered on the domain, otherwise the one from RDAP (marked *laut RDAP*). DNS management is the value entered, otherwise the provider detected from the name servers of the latest check (marked *erkannt*), e.g. Cloudflare, AWS Route 53, Hetzner, Artfiles, IONOS, Strato, INWX, ALL-INKL.COM or Azure DNS; zones with several providers show all of them. If the entered value does not match the name servers (e.g. after a move), the detected provider is shown next to it. Unknown name servers are listed as *nicht erkannt*.
 
 The domain page shows the current result of every check and the history of its check runs. Results are sorted by severity: errors first, then warnings, not checkable, info and OK; within the same severity they keep the check order. The details of every check that is not OK are expanded, and their messages are sorted the same way. OK results stay collapsed. Check runs show results the same way. Every result that is not OK has a **KI-Empfehlung** button, and the header offers **KI-Copilot** and **Export für KI-Chat** (see [AI copilot](AI-copilot.md)).
 
